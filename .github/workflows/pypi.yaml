@@ -11,9 +11,10 @@ on:
 jobs:
   build-wheels:
     name: Build wheel for ${{ matrix.variant.name }} on self-hosted
-    # Running on the host is necessary for the cuda-toolkit action to work correctly.
-    # Ensure the self-hosted runner has a compatible OS (e.g., Ubuntu).
     runs-on: self-hosted
+
+    container:
+      image: python:3.12-slim-bookworm
 
     strategy:
       fail-fast: false
@@ -30,7 +31,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install OS dependencies
+      - name: Install build dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential curl libssl-dev pkg-config
@@ -49,7 +50,6 @@ jobs:
         id: cuda-toolkit
         with:
           cuda: ${{ matrix.variant.cuda-version }}
-          # Suffix is required for matrix builds to prevent artifact name conflicts.
           log-file-suffix: ${{ matrix.variant.name }}-${{ matrix.variant.cuda-version }}
 
       - name: Install Python build dependencies
@@ -61,7 +61,6 @@ jobs:
       - name: Build wheel
         env:
           CUDA_COMPUTE_CAP: ${{ matrix.variant.compute-caps }}
-        # The cuda-toolkit action sets the necessary environment variables (e.g., CUDA_PATH).
         run: maturin build --release --out dist
 
       - name: Upload wheel artifact
