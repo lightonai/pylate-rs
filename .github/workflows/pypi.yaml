@@ -32,6 +32,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Key Fix 1: Explicitly set up the Python version for pre-build steps.
+      - name: Setup Python
+        id: setup-python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.variant.python-version }}
+
+      # Key Fix 2: Add the Python lib directory to the shared library path.
+      - name: Export Python Library Path
+        shell: bash
+        run: |
+          PYTHON_LIB_DIR=$(dirname $(dirname ${{ steps.setup-python.outputs.python-path }}))/lib
+          echo "LD_LIBRARY_PATH=$PYTHON_LIB_DIR:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+
       - name: Install build dependencies
         run: |
           apt-get update
@@ -41,6 +55,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
+      # This now uses the Python version set up by actions/setup-python
       - name: Install Python build dependencies
         run: pip install maturin>=1.8.6 numpy>=1.26.4
 
