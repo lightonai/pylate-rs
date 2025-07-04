@@ -1,4 +1,4 @@
-name: Publish Python 🐍 distributions to PyPI
+name: Build and Publish Python 🐍 distributions
 
 on:
   push:
@@ -6,8 +6,8 @@ on:
       - main
 
 jobs:
-  build-and-publish:
-    name: Build and publish for ${{ matrix.variant.name }} on ${{ matrix.variant.os }}
+  build-wheels:
+    name: Build wheel for ${{ matrix.variant.name }} on ${{ matrix.variant.os }}
     runs-on: ${{ matrix.variant.os }}
     strategy:
       fail-fast: false
@@ -16,8 +16,6 @@ jobs:
           - { name: "default", os: "ubuntu-latest", python-version: "3.9" }
           - { name: "metal", os: "macos-latest", python-version: "3.9" }
           - { name: "accelerate", os: "macos-latest", python-version: "3.9" }
-          - { name: "cuda", os: "ubuntu-latest", python-version: "3.9" }
-          - { name: "mkl", os: "windows-latest", python-version: "3.9" }
 
     steps:
       - name: Checkout repository
@@ -39,6 +37,24 @@ jobs:
 
       - name: Build wheel
         run: maturin build --release --out dist
+
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package-wheels
+          path: dist/
+
+  publish-to-pypi:
+    name: Publish wheels to PyPI
+    needs: build-wheels
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all wheel artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package-wheels
+          path: dist/
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
