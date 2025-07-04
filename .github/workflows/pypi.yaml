@@ -23,7 +23,7 @@ jobs:
         variant:
           - {
               name: "cuda",
-              python-version: "3.12",
+              python-version: "3.10",
               cuda-version: "12.1",
               compute-caps: "80",
             }
@@ -31,18 +31,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Setup Python
-        id: setup-python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Export Python Library Path
-        shell: bash
-        run: |
-          PYTHON_LIB_DIR=$(dirname $(dirname ${{ steps.setup-python.outputs.python-path }}))/lib
-          echo "LD_LIBRARY_PATH=$PYTHON_LIB_DIR:$LD_LIBRARY_PATH" >> $GITHUB_ENV
 
       - name: Install build dependencies
         run: |
@@ -53,9 +41,8 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      # MODIFICATION 1: Add cibuildwheel to the pip install command
       - name: Install Python build dependencies
-        run: pip install maturin>=1.8.6 numpy>=1.26.4 cibuildwheel==2.23.3
+        run: pip install maturin>=1.8.6 numpy>=1.26.4
 
       - name: Generate pyproject.toml
         run: python generate_configs.py ${{ matrix.variant.name }}
@@ -80,9 +67,8 @@ jobs:
           PYTHON_VERSION_NO_DOT=$(echo "${{ matrix.variant.python-version }}" | tr -d '.')
           echo "PYTHON_VERSION_NO_DOT=$PYTHON_VERSION_NO_DOT" >> $GITHUB_OUTPUT
 
-      # MODIFICATION 2: Change `uses:` to a `run:` command
       - name: Build wheels
-        run: cibuildwheel --output-dir dist
+        uses: pypa/cibuildwheel@v2.23.3
         env:
           CIBW_BUILD: "cp${{ steps.prepare_python_version.outputs.PYTHON_VERSION_NO_DOT }}-*"
           CIBW_SKIP: "*-manylinux_i686 *-musllinux_* *-win32"
@@ -93,9 +79,7 @@ jobs:
           CIBW_ENVIRONMENT: |
             PIP_EXTRA_INDEX_URL="https://download.pytorch.org/whl/cpu/torch_stable.html"
           CIBW_PIP_ARGS: --no-cache-dir
-          CIBW_BEFORE_BUILD: "pip install torch==2.7.0 numpy maturin delvewheel"
-          CIBW_REPAIR_WHEEL_COMMAND_LINUX: >
-            LD_LIBRARY_PATH=$(python -c 'import torch, os; print(os.path.join(os.path.dirname(torch.__file__), "lib"))'):$LD_LIBRARY_PATH auditwheel repair -w {dest_dir} {wheel} --exclude libtorch.so --exclude libtorch_cpu.so --exclude libtorch_python.so
+          CIBW_BEFORE_BUILD: "pip install numpy maturin"
 
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
@@ -103,7 +87,6 @@ jobs:
           name: wheels-${{ matrix.variant.name }}-cuda${{ matrix.variant.cuda-version }}-py${{ matrix.variant.python-version }}
           path: dist/
 
-  # The `publish` job does not need any changes
   publish:
     name: Publish to PyPI
     needs: build-wheels
