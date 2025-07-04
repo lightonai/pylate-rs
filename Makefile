@@ -5,9 +5,9 @@ install-wasm:
 	cargo install wasm-pack
 
 build-wasm:
-	rm -rf public/pkg
-	wasm-pack build . --target web --out-dir ./doc/pkg -- --features wasm --no-default-features
-	python3 -m http.server --directory doc
+	rm -rf docs/pkg
+	wasm-pack build . --target web --out-dir ./docs/pkg -- --features wasm --no-default-features
+	python3 -m http.server --directory docs
 
 run-rust:
 	cargo build --release --features metal,accelerate --bin benchmark

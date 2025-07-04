@@ -769,9 +769,9 @@ print(scores)
             DEBOUNCE_DELAY_INPUT: 400,
             DEBOUNCE_DELAY_MATRIX: 500,
             DEBOUNCE_DELAY_SLIDER: 50,
-            DEFAULT_MODEL: "answerai-colbert-small-v1",
+            DEFAULT_MODEL: "lightonai/answerai-colbert-small-v1",
             AVAILABLE_MODELS: [
-                "answerai-colbert-small-v1",
+                "lightonai/answerai-colbert-small-v1",
                 "lightonai/GTE-ModernColBERT-v1",
                 "lightonai/colbertv2.0",
                 "lightonai/Reason-ModernColBERT",
@@ -1026,13 +1026,11 @@ print(scores)
                 try {
                     let modelFiles;
                     try {
-                        modelFiles = await fetchAllFiles(`models/${modelRepo}`);
-                    } catch (e) {
-                        console.warn(`Local model not found, falling back to Hugging Face Hub.`, e);
                         this.updateAllStatuses(`⏳ Downloading ${modelRepo} from Hugging Face Hub...`, 'loading');
                         modelFiles = await fetchAllFiles(`https://huggingface.co/${modelRepo}/resolve/main`);
+                    } catch (e) {
+                        console.warn(`Unable to download the model.`, e);
                     }
-
                     this.updateAllStatuses(`Initializing ${modelRepo}...`, 'loading');
                     const [tokenizer, model, config, stConfig, dense, denseConfig, tokensConfig] = modelFiles;
                     this.state.colbertModel = new ColBERT(model, dense, tokenizer, config, stConfig, denseConfig, tokensConfig, 32);
