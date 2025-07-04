@@ -1,6 +1,7 @@
 # This workflow builds and publishes Python distributions to PyPI.
 # It uses a self-hosted runner and a PyTorch container image
 # to ensure the correct CUDA environment is available for the build.
+# It relies on Trusted Publishing for secure authentication with PyPI.
 
 name: Build and Publish Python 🐍 distributions
 
@@ -35,7 +36,7 @@ jobs:
       - name: Install build dependencies
         run: |
           apt-get update
-          apt-get install -y --no-install-recommends build-essential curl libssl-dev pkg-config
+          apt-get install -y --no-install-recommends build-essential curl libssl-dev pkg-config zip
         shell: bash
 
       - name: Install Rust
@@ -60,13 +61,23 @@ jobs:
           echo "CUDA_LIB_DIR=$LIB_DIR" >> $GITHUB_ENV
         shell: bash
 
-      - name: Build wheel
+      - name: Build wheel with auditwheel exclusions
         env:
           LD_LIBRARY_PATH: ${{ env.CUDA_LIB_DIR }}:${LD_LIBRARY_PATH}
           CUDA_COMPUTE_CAP: ${{ matrix.variant.compute-caps }}
           AUDITWHEEL_EXCLUDE: "libcuda.so,libnvJitLink.so,libcudart.so,libcublas.so,libcufft.so,libcurand.so,libcusolver.so,libcusparse.so,libcudnn.so"
         run: maturin build --release --out dist
         shell: bash
+
+      - name: Verify wheel contents and size
+        run: |
+          echo "--- Verifying wheel contents ---"
+          WHEEL_FILE=$(ls dist/*.whl)
+          unzip -l $WHEEL_FILE | grep '\.so'
+          echo "--- Verifying wheel size ---"
+          ls -lh dist
+          # Optionally, fail the build if the wheel is still too large
+          # find dist -size +95M -exec echo "::error::Wheel size exceeds 95MB" \; -exec exit 1 \;
 
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
@@ -89,9 +100,5 @@ jobs:
           path: dist
           merge-multiple: true
 
-      - name: Publish to PyPI
+      - name: Publish to PyPI using Trusted Publishing
         uses: pypa/gh-action-pypi-publish@v1.12.4
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}
-          skip-existing: true
