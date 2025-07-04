@@ -36,23 +36,37 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # The following steps will run inside the container environment.
       # The 'slim' container is minimal, so we install build-essential for compilation.
       - name: Install build dependencies
         run: |
           apt-get update
           apt-get install -y build-essential curl
 
+      - name: Setup Conda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          python-version: ${{ matrix.variant.python-version }}
+          auto-update-conda: true
+          # Use bash login shells to ensure conda is activated for subsequent steps
+          shell-init: bash
+
+      - name: Install CUDA Toolkit from Conda
+        shell: bash -l {0}
+        run: conda install -y -c nvidia cuda-toolkit=${{ matrix.variant.cuda-version }}
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
       - name: Install Python dependencies
+        shell: bash -l {0}
         run: pip install maturin>=1.8.6 numpy>=1.26.4
 
       - name: Generate pyproject.toml for ${{ matrix.variant.name }}
+        shell: bash -l {0}
         run: python generate_configs.py ${{ matrix.variant.name }}
 
       - name: Build wheel
+        shell: bash -l {0}
         run: maturin build --release --out dist
 
       - name: Upload wheel artifact
