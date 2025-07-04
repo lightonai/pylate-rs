@@ -36,12 +36,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # This step will use the Python version from the container image.
-      # It's still useful for setting up the environment PATH correctly.
-      - name: Set up Python ${{ matrix.variant.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.variant.python-version }}
+      # The 'setup-python' step has been removed. The python:3.12 container
+      # already provides the correct Python environment, and this step was
+      # causing a conflict with the container's OS detection.
 
       # The following steps will run inside the container environment.
       # The 'slim' container is minimal, so we install build-essential for compilation.
