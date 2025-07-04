@@ -68,7 +68,7 @@ jobs:
         run: maturin build --release --out dist
         shell: bash
 
-       - name: Strip CUDA libraries and Verify
+      - name: Strip CUDA libraries and Verify
         run: |
           set -e
           echo "--- Stripping CUDA libraries from the wheel ---"
@@ -98,7 +98,7 @@ jobs:
           # Create a temporary new wheel file name
           NEW_WHEEL_FILE="${WHEEL_FILE}.new"
           (cd "$UNPACK_DIR" && zip -r -q "$NEW_WHEEL_FILE" .)
-          
+
           # Move the new wheel file to replace the original
           mv "$UNPACK_DIR/$NEW_WHEEL_FILE" "$WHEEL_FILE"
           rm -rf "$UNPACK_DIR"
