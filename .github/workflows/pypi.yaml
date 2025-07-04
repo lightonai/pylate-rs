@@ -65,10 +65,7 @@ jobs:
       - name: Build wheel
         env:
           CUDA_COMPUTE_CAP: ${{ matrix.variant.compute-caps }}
-          # FIX: Point the build script to the CUDA toolkit within the Conda environment.
-          # The candle-kernels crate specifically checks for the CUDA_ROOT variable.
-          CUDA_ROOT: ${{ env.CONDA_PREFIX }}
-        run: maturin build --release --out dist
+        run: CUDA_ROOT="$CONDA_PREFIX" maturin build --release --out dist
 
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
