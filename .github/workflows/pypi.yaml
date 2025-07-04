@@ -32,14 +32,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Key Fix 1: Explicitly set up the Python version for pre-build steps.
       - name: Setup Python
         id: setup-python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.variant.python-version }}
+          python-version: "3.12"
 
-      # Key Fix 2: Add the Python lib directory to the shared library path.
       - name: Export Python Library Path
         shell: bash
         run: |
