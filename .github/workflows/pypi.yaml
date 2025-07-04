@@ -47,10 +47,16 @@ jobs:
       - name: Generate pyproject.toml
         run: python generate_configs.py ${{ matrix.variant.name }}
 
+      - name: Check for CUDA Driver Libraries
+        run: ls -l /usr/local/nvidia/lib64
+        shell: bash
+
       - name: Build wheel
         env:
+          LD_LIBRARY_PATH: /usr/local/nvidia/lib64:${LD_LIBRARY_PATH}
           CUDA_COMPUTE_CAP: ${{ matrix.variant.compute-caps }}
-        run: maturin build --release --out dist
+        run: maturin build --release --out dist --manylinux 2014
+        shell: bash
 
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
@@ -63,7 +69,7 @@ jobs:
     needs: build-wheels
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
+      id-token: write # Required for trusted publishing
 
     steps:
       - name: Download all wheels
