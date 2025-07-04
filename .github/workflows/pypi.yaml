@@ -1,3 +1,6 @@
+# This workflow builds and publishes Python distributions to PyPI.
+# It is triggered on every push to the main branch.
+
 name: Build and Publish Python 🐍 distributions
 
 on:
@@ -7,12 +10,21 @@ on:
 
 jobs:
   build-wheels:
-    name: Build wheel for ${{ matrix.variant.name }} on ${{ matrix.variant.os }}
+    # This job name is now dynamic based on the build matrix.
+    name: Build wheel for ${{ matrix.variant.name }} on self-hosted
+    # This job now runs on a self-hosted runner.
     runs-on: self-hosted
+    # We use a container to ensure a consistent build environment with the
+    # correct Python version, avoiding issues with the host OS.
+    container:
+      image: python:3.12-slim-bookworm
+
     strategy:
       fail-fast: false
       matrix:
         variant:
+          # The 'os' key is now descriptive metadata, as the job runs in a
+          # container on a self-hosted runner.
           - {
               name: "cuda",
               os: "ubuntu-latest",
@@ -24,15 +36,24 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # This step will use the Python version from the container image.
+      # It's still useful for setting up the environment PATH correctly.
       - name: Set up Python ${{ matrix.variant.python-version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.variant.python-version }}
 
+      # The following steps will run inside the container environment.
+      # The 'slim' container is minimal, so we install build-essential for compilation.
+      - name: Install build dependencies
+        run: |
+          apt-get update
+          apt-get install -y build-essential
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: pip install maturin>=1.8.6 numpy>=1.26.4
 
       - name: Generate pyproject.toml for ${{ matrix.variant.name }}
@@ -44,13 +65,16 @@ jobs:
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
         with:
-          name: wheels-${{ matrix.variant.name }}${{ matrix.variant.cuda-version && format('-cuda{0}', matrix.variant.cuda-version) || '' }}-${{ matrix.variant.os }}-py${{ matrix.variant.python-version }}
+          # Updated artifact name to reflect the self-hosted runner environment.
+          name: wheels-${{ matrix.variant.name }}${{ matrix.variant.cuda-version && format('-cuda{0}', matrix.variant.cuda-version) || '' }}-selfhosted-py${{ matrix.variant.python-version }}
           path: dist/
 
   publish:
     name: Publish to PyPI
+    # This job will only run after all 'build-wheels' jobs complete successfully.
     needs: build-wheels
     runs-on: ubuntu-latest
+    # Required permissions for publishing to PyPI using a trusted publisher.
     permissions:
       id-token: write
 
@@ -58,6 +82,7 @@ jobs:
       - name: Download all wheels
         uses: actions/download-artifact@v4
         with:
+          # Use a pattern to download all artifacts starting with 'wheels-'
           pattern: wheels-*
           path: dist
           merge-multiple: true
@@ -65,6 +90,7 @@ jobs:
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@v1.12.4
         with:
+          # Use the token-based authentication for PyPI
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
           skip-existing: true
