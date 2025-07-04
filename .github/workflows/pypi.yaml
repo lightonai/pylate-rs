@@ -47,13 +47,27 @@ jobs:
       - name: Generate pyproject.toml
         run: python generate_configs.py ${{ matrix.variant.name }}
 
-      - name: Check for CUDA Driver Libraries
-        run: ls -l /usr/local/nvidia/lib64
+      # Dynamically find the location of the NVIDIA driver library (libcuda.so.1).
+      # This makes the workflow robust to different self-hosted runner configurations.
+      - name: Find NVIDIA Driver Library Path
+        id: find_cuda_lib
+        run: |
+          LIB_PATH=$(find / -name libcuda.so.1 2>/dev/null | head -n 1)
+          if [ -z "$LIB_PATH" ]; then
+            echo "::error::libcuda.so.1 not found on the runner. Please ensure the NVIDIA driver is correctly installed and accessible within the container."
+            exit 1
+          fi
+          LIB_DIR=$(dirname "$LIB_PATH")
+          echo "Found libcuda.so.1 in: $LIB_DIR"
+          echo "CUDA_LIB_DIR=$LIB_DIR" >> $GITHUB_ENV
         shell: bash
 
+      # Build the wheel using maturin.
+      # We set LD_LIBRARY_PATH using the path found in the previous step to ensure that
+      # auditwheel can locate libcuda.so.1 for repairing the wheel.
       - name: Build wheel
         env:
-          LD_LIBRARY_PATH: /usr/local/nvidia/lib64:${LD_LIBRARY_PATH}
+          LD_LIBRARY_PATH: ${{ env.CUDA_LIB_DIR }}:${LD_LIBRARY_PATH}
           CUDA_COMPUTE_CAP: ${{ matrix.variant.compute-caps }}
         run: maturin build --release --out dist --manylinux 2014
         shell: bash
