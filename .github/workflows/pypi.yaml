@@ -60,17 +60,9 @@ jobs:
           echo "CUDA_LIB_DIR=$LIB_DIR" >> $GITHUB_ENV
         shell: bash
 
-      - name: Prepare Python Version for CIBW_BUILD
-        id: prepare_python_version
-        shell: bash
-        run: |
-          PYTHON_VERSION_NO_DOT=$(echo "${{ matrix.variant.python-version }}" | tr -d '.')
-          echo "PYTHON_VERSION_NO_DOT=$PYTHON_VERSION_NO_DOT" >> $GITHUB_OUTPUT
-
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.23.3
         env:
-          CIBW_BUILD: "cp${{ steps.prepare_python_version.outputs.PYTHON_VERSION_NO_DOT }}-*"
           CIBW_SKIP: "*-manylinux_i686 *-musllinux_* *-win32"
           CIBW_BUILD_VERBOSITY: 1
           LIBTORCH_BYPASS_VERSION_CHECK: 1
