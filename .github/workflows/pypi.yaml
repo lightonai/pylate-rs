@@ -64,6 +64,7 @@ jobs:
         env:
           LD_LIBRARY_PATH: ${{ env.CUDA_LIB_DIR }}:${LD_LIBRARY_PATH}
           CUDA_COMPUTE_CAP: ${{ matrix.variant.compute-caps }}
+          AUDITWHEEL_EXCLUDE: "libcuda.so,libnvJitLink.so,libcudart.so,libcublas.so,libcufft.so,libcurand.so,libcusolver.so,libcusparse.so,libcudnn.so"
         run: maturin build --release --out dist
         shell: bash
 
@@ -78,7 +79,7 @@ jobs:
     needs: build-wheels
     runs-on: ubuntu-latest
     permissions:
-      id-token: write # Required for trusted publishing
+      id-token: write
 
     steps:
       - name: Download all wheels
