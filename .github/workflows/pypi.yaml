@@ -39,8 +39,11 @@ jobs:
         if: matrix.variant.name == 'cuda'
         uses: Jimver/cuda-toolkit@v0.2.24
         with:
-          linux-local-args: "--toolkit --silent --no-verify"
           cuda: ${{ matrix.variant.cuda-version }}
+          linux-local-args: |
+            --toolkit
+            --silent
+            --no-verify
           log-file-suffix: "${{ matrix.variant.name }}${{ matrix.variant.cuda-version && format('-cuda{0}', matrix.variant.cuda-version) || '' }}-${{ matrix.variant.os }}-py${{ matrix.variant.python-version }}.txt"
 
       - name: Install Rust
