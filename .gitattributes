@@ -1,0 +1,2 @@
+doc/models/answerai-colbert-small-v1/model.safetensors filter=lfs diff=lfs merge=lfs -text
+docs/models/answerai-colbert-small-v1/model.safetensors filter=lfs diff=lfs merge=lfs -text
