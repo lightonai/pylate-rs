@@ -41,7 +41,7 @@ jobs:
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
         with:
-          name: python-package-wheels-${{ matrix.variant.name }}
+          name: wheels-${{ matrix.variant.name }}
           path: dist/
 
   publish:
@@ -55,7 +55,7 @@ jobs:
       - name: Download all wheels
         uses: actions/download-artifact@v4
         with:
-          pattern: wheels-*-py*
+          pattern: wheels-*
           path: dist
           merge-multiple: true
 
