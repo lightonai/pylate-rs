@@ -1,6 +1,6 @@
 [package]
 name = "pylate-rs"
-version = "0.1.0"
+version = "1.0.3"
 edition = "2021"
 license = "MIT"
 description = "Rust and WebAssembly library for late interaction models."
@@ -25,7 +25,10 @@ wasm-bindgen = { version = "0.2.100", optional = true }
 serde-wasm-bindgen = { version = "0.6.5", optional = true }
 console_error_panic_hook = { version = "0.1.7", optional = true }
 getrandom = { version = "0.3", features = ["wasm_js"], optional = true }
-hf-hub = { version = "0.4.3", optional = true }
+hf-hub = { version = "0.4.3", optional = true, default-features = false, features = [
+    "ureq",
+    "rustls-tls",
+] }
 kodama = "0.3.0"
 rayon = "1.10.0"
 pyo3 = { version = "0.25.1", optional = true, features = ["extension-module"] }

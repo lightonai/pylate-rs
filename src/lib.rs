@@ -2,6 +2,7 @@
 pub mod builder;
 pub mod error;
 pub mod model;
+pub mod modernbert;
 pub mod pooling;
 pub mod types;
 pub mod utils;

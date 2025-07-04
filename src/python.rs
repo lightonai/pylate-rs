@@ -1,7 +1,7 @@
 use crate::{error::ColbertError, model::ColBERT};
 use candle_core::{Device, Tensor};
 use ndarray::Array;
-use numpy::{ndarray::IxDyn, PyArray, PyArrayMethods, PyReadonlyArrayDyn, PyUntypedArrayMethods};
+use numpy::{ndarray::IxDyn, PyArray, PyReadonlyArrayDyn, PyUntypedArrayMethods};
 use pyo3::prelude::*;
 use pyo3::{exceptions::PyValueError, types::PyModule, Bound};
 use std::convert::TryFrom;

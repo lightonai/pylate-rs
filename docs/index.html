@@ -256,14 +256,21 @@
     <main class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
         <article>
             <header class="mb-16 text-center">
+                <header class="mb-16 text-center">  
+          
                 <h1 class="text-4xl font-bold tracking-tight text-gray-900 mt-3">pylate-rs</h1>
+                     
+
                 <a href="https://www.lighton.ai/" class="text-lg text-indigo-600 hover:underline">LightOn</a>
+
             </header>
 
             <div class="prose max-w-none space-y-16">
+
+
                 <p style="text-indent: 40px">
                     <a href="https://github.com/lightonai/pylate">PyLate</a>, is a powerful tool for research and
-                    training with ColBERT developped at <a href="https://www.lighton.ai/">LightOn</a>. It carries an
+                    training with ColBERT developped at <a href="https://www.lighton.ai/">LightOn</a>. It carries a
                     heavy set of
                     dependencies. That's fine for most environments and especially to train state-of-the-art information
                     retrieval models, but it can be a real headache when you just want to run inference in a live
@@ -278,6 +285,102 @@
                     the deep-learning crate made with Rust.
                     The goal was to create a focused, lightweight tool that does one thing well: <strong>compute ColBERT
                         embeddings</strong>.
+
+                <br>
+                <br>
+
+                Time to <code>import pylate_rs</code>, intialize the model on the target device and start computing embeddings with <strong>Python</strong>:
+                </p>
+                
+
+                <div class="my-12 p-8 bg-slate-50 border border-slate-200 rounded-lg not-prose">
+                    <div class="space-y-6 max-w-3xl mx-auto">
+                        <div>
+                            <div class="flex justify-between items-baseline mb-2">
+                                <h4 class="font-semibold text-slate-700 text-lg">CPU</h4>
+                                <span class="text-sm font-bold text-green-600">-97%</span>
+                            </div>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex items-center gap-x-3">
+                                    <span class="font-medium text-slate-500 w-24">PyLate</span>
+                                    <div class="w-full bg-slate-200 rounded-full h-6 flex items-center">
+                                        <div class="bg-slate-400 h-full rounded-full flex items-center justify-end pr-2"
+                                            style="width: 56.9%;">
+                                            <span class="font-mono text-white font-semibold text-xs">2.06s</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-x-3">
+                                    <span class="font-medium text-slate-600 w-24">pylate-rs</span>
+                                    <div class="w-full bg-slate-200 rounded-full h-6 flex items-center">
+                                        <div class="bg-teal-500 h-full rounded-full flex items-center justify-end pr-2"
+                                            style="width: 1.9%; min-width: 45px;">
+                                            <span class="font-mono text-white font-semibold text-xs">0.07s</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between items-baseline mb-2">
+                                <h4 class="font-semibold text-slate-700 text-lg">CUDA (GPU)</h4>
+                                <span class="text-sm font-bold text-green-600">-46%</span>
+                            </div>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex items-center gap-x-3">
+                                    <span class="font-medium text-slate-500 w-24">PyLate</span>
+                                    <div class="w-full bg-slate-200 rounded-full h-6 flex items-center">
+                                        <div class="bg-slate-400 h-full rounded-full flex items-center justify-end pr-2"
+                                            style="width: 100%;">
+                                            <span class="font-mono text-white font-semibold text-xs">3.62s</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-x-3">
+                                    <span class="font-medium text-slate-600 w-24">pylate-rs</span>
+                                    <div class="w-full bg-slate-200 rounded-full h-6 flex items-center">
+                                        <div class="bg-teal-500 h-full rounded-full flex items-center justify-end pr-2"
+                                            style="width: 53.9%;">
+                                            <span class="font-mono text-white font-semibold text-xs">1.95s</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between items-baseline mb-2">
+                                <h4 class="font-semibold text-slate-700 text-lg">MPS (Apple sillicon)</h4>
+                                <span class="text-sm font-bold text-green-600">-96%</span>
+                            </div>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex items-center gap-x-3">
+                                    <span class="font-medium text-slate-500 w-24">PyLate</span>
+                                    <div class="w-full bg-slate-200 rounded-full h-6 flex items-center">
+                                        <div class="bg-slate-400 h-full rounded-full flex items-center justify-end pr-2"
+                                            style="width: 53.9%;">
+                                            <span class="font-mono text-white font-semibold text-xs">1.95s</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-x-3">
+                                    <span class="font-medium text-slate-600 w-24">pylate-rs</span>
+                                    <div class="w-full bg-slate-200 rounded-full h-6 flex items-center">
+                                        <div class="bg-teal-500 h-full rounded-full flex items-center justify-end pr-2"
+                                            style="width: 2.2%; min-width: 45px;">
+                                            <span class="font-mono text-white font-semibold text-xs">0.08s</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <p>
+
+                   Along with the <a href="https://pypi.org/project/pylate-rs/">Python</a> release, we uploaded a dedicated <a href="https://docs.rs/pylate-rs/latest/pylate_rs/all.html">crate</a> that can be used in any Rust project, and also to compile it to <a href="https://www.npmjs.com/package/pylate-rs">WebAssembly</a> for use in the browser.
 
                     <br>
                     <br>
@@ -343,8 +446,9 @@
                     </code>
                 </div>
 
-                Every interactive charts below run in the browser using WebAssembly with the wasm bindings of
-                pylate-rs.
+                <p>
+                    Every interactive charts below run in the browser using WebAssembly with the wasm bindings of
+                    pylate-rs.
                 </p>
             </div>
 
@@ -490,7 +594,8 @@ Disneyland Paris is an entertainment resort in Chessy, 32 km east of Paris.</tex
 
                     <code>pylate-rs</code> implements a token reduction strategy following the <a
                         href="https://www.answer.ai/posts/colbert-pooling.html"> article
-                        from Benjamin Clavié</a>. The core idea is to find a <strong>balance between using all tokens
+                        from Benjamin Clavié and Antoine Chaffin</a>. The core idea is to find a <strong>balance between
+                        using all tokens
                         and using
                         only the most
                         salient ones</strong>.
@@ -568,40 +673,8 @@ Disneyland Paris is an entertainment resort in Chessy, 32 km east of Paris.</tex
             <div class="prose max-w-none mt-16">
 
                 <p>
-                    At LightOn, we are developing Generative Models, Encoders,
-                    ColBERT models and <a
-                        href="https://www.lighton.ai/lighton-blogs/lighton-integrates-visual-rag-into-its-platform">state-of-the-art
-                        RAG pipelines</a>. We released PyLate, an optimized solution for training ColBERT
-                    models on hardware ranging from a single CPU to a multi-GPU node.
 
-                    <br>
-                    <br>
-
-                    In partnership with AnswerAI, LightOn released <a
-                        href="https://arxiv.org/abs/2412.13663">ModernBERT</a>, a new encoder that we fine-tuned to
-                    create <a
-                        href="https://www.lighton.ai/lighton-blogs/lighton-releases-gte-moderncolbert-first-state-of-the-art-late-interaction-model-trained-on-pylate">GTE-ModernColBERT</a>.
-
-                    <br>
-                    <br>
-
-                    LightOn also released <a
-                        href="https://www.lighton.ai/lighton-blogs/lighton-releases-reason-colbert">Reason-ModernColBERT</a>,
-                    which achieves state-of-the-art results on
-                    the <a href="https://huggingface.co/datasets/xlangai/BRIGHT">BRIGHT</a>
-                    benchmark. <strong>Both GTE-ModernColBERT and Reason-ModernColBERT models were trained with PyLate
-                        and are compatible with <code>pylate-rs</code></strong>.
-
-                    <br>
-                    <br>
-
-                    You can find all compatible models on the Hugging Face Hub under the <a
-                        href="https://huggingface.co/models?other=PyLate">PyLate tag</a>.
-
-                    <br>
-                    <br>
-
-                    Finally, we released <a href="https://github.com/lightonai/fast-plaid">fast-plaid</a>, a Rust
+                    In June 2O25, we released <a href="https://github.com/lightonai/fast-plaid">fast-plaid</a> at LightOn, a Rust
                     implementation of the <a href="https://arxiv.org/abs/2205.09707">PLAID</a> algorithm for
                     <strong>efficient nearest-neighbor search</strong>. Paired with <code>pylate-rs</code>, fast-plaid
                     offers a
@@ -686,7 +759,7 @@ fast_plaid = search.FastPlaid(index="index")
 fast_plaid.create(
     documents_embeddings=[torch.tensor(embedding) for embedding in documents_embeddings]
 )
-                        </code></pre>
+                                </code></pre>
 
 
                     <div class="prose max-w-none mt-16">
@@ -738,6 +811,50 @@ scores = fast_plaid.search(
 print(scores)
                                         </code></pre>
                         </div>
+
+                        <br>
+                        <p>
+                            At LightOn, we are developing Generative Models, Encoders,
+                            ColBERT models and <a
+                                href="https://www.lighton.ai/lighton-blogs/lighton-integrates-visual-rag-into-its-platform">state-of-the-art
+                                RAG pipelines</a>. We released PyLate, an optimized solution for training ColBERT
+                            models on hardware ranging from a single CPU to a multi-GPU node.
+
+                            <br>
+                            <br>
+
+                            In partnership with AnswerAI, LightOn released <a
+                                href="https://arxiv.org/abs/2412.13663">ModernBERT</a>, a new
+                            encoder state-of-the-art encoder. We later fine-tuned it to
+                            create a state-of-the-art ColBERT: <a
+                                href="https://www.lighton.ai/lighton-blogs/lighton-releases-gte-moderncolbert-first-state-of-the-art-late-interaction-model-trained-on-pylate">GTE-ModernColBERT</a>.
+
+                            <br>
+                            <br>
+
+                            LightOn also released <a
+                                href="https://www.lighton.ai/lighton-blogs/lighton-releases-reason-colbert">Reason-ModernColBERT</a>,
+                            which achieves state-of-the-art results on
+                            the <a href="https://huggingface.co/datasets/xlangai/BRIGHT">BRIGHT</a>
+                            benchmark. Reason-ModernColBERT outperforms models 45x larger on the gold standard for
+                            reasoning-intensive
+                            retrieval. <strong>Both GTE-ModernColBERT and Reason-ModernColBERT models were trained with
+                                PyLate
+                                and are compatible with <code>pylate-rs</code></strong>.
+
+                            <br>
+                            <br>
+
+                            You can find all compatible models on the Hugging Face Hub under the <a
+                                href="https://huggingface.co/models?other=PyLate">PyLate tag</a>.
+
+                            <br>
+                            <br>
+
+                            For more information, visit the PyLate and pylate-rs repositories on GitHub and leave a ⭐️
+                            if you find them useful!
+
+                        <p>
         </article>
         <div class="prose max-w-none mt-16">
             <p class="text-left" style="font-size: 1rem;">
@@ -769,9 +886,9 @@ print(scores)
             DEBOUNCE_DELAY_INPUT: 400,
             DEBOUNCE_DELAY_MATRIX: 500,
             DEBOUNCE_DELAY_SLIDER: 50,
-            DEFAULT_MODEL: "answerai-colbert-small-v1",
+            DEFAULT_MODEL: "lightonai/answerai-colbert-small-v1",
             AVAILABLE_MODELS: [
-                "answerai-colbert-small-v1",
+                "lightonai/answerai-colbert-small-v1",
                 "lightonai/GTE-ModernColBERT-v1",
                 "lightonai/colbertv2.0",
                 "lightonai/Reason-ModernColBERT",
@@ -1026,13 +1143,11 @@ print(scores)
                 try {
                     let modelFiles;
                     try {
-                        modelFiles = await fetchAllFiles(`models/${modelRepo}`);
-                    } catch (e) {
-                        console.warn(`Local model not found, falling back to Hugging Face Hub.`, e);
                         this.updateAllStatuses(`⏳ Downloading ${modelRepo} from Hugging Face Hub...`, 'loading');
                         modelFiles = await fetchAllFiles(`https://huggingface.co/${modelRepo}/resolve/main`);
+                    } catch (e) {
+                        console.warn(`Unable to download the model.`, e);
                     }
-
                     this.updateAllStatuses(`Initializing ${modelRepo}...`, 'loading');
                     const [tokenizer, model, config, stConfig, dense, denseConfig, tokensConfig] = modelFiles;
                     this.state.colbertModel = new ColBERT(model, dense, tokenizer, config, stConfig, denseConfig, tokensConfig, 32);

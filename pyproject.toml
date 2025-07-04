@@ -3,7 +3,7 @@ requires = ["maturin >= 1.8.6", "numpy >= 1.26.4"]
 build-backend = "maturin"
 
 [project]
-name = {{ package_name }}
+name = "pylate-rs-cuda"
 version = "1.0.3"
 description = "Rust and WebAssembly library for late interaction models."
 authors = [
@@ -51,7 +51,7 @@ include = ["Cargo.toml", "pyproject.toml", "README.md", "src/*"]
 bindings = "pyo3"
 python-source = "python"
 module-name = "pylate_rs.pylate_rs"
-features = {{ features }}
+features = ["tokenizers/onig", "hf-hub", "python", "cuda"]
 
 [tool.pytest.ini_options]
 filterwarnings = [

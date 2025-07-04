@@ -26,7 +26,6 @@ htmlcov/
 *.hypothesis/
 *.pytest_cache/
 *.tox/
-pyproject.toml
 *.so
 public/models/
 test.py
