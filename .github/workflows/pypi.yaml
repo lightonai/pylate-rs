@@ -1,6 +1,8 @@
 # This workflow builds and publishes Python distributions to PyPI.
 # It uses a self-hosted runner and a PyTorch container image
 # to ensure the correct CUDA environment is available for the build.
+# This updated version includes a repair step to exclude PyTorch libraries,
+# significantly reducing the final wheel size.
 
 name: Build and Publish Python 🐍 distributions
 
@@ -32,7 +34,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install build dependencies
+      - name: Install system build dependencies
         run: |
           apt-get update
           apt-get install -y --no-install-recommends build-essential curl libssl-dev pkg-config
@@ -42,13 +44,11 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Install Python build dependencies
-        run: pip install maturin>=1.8.6 numpy>=1.26.4
+        run: pip install maturin>=1.8.6 numpy>=1.26.4 auditwheel
 
       - name: Generate pyproject.toml
         run: python generate_configs.py ${{ matrix.variant.name }}
 
-      # Dynamically find the location of the NVIDIA driver library (libcuda.so.1).
-      # This makes the workflow robust to different self-hosted runner configurations.
       - name: Find NVIDIA Driver Library Path
         id: find_cuda_lib
         run: |
@@ -62,14 +62,38 @@ jobs:
           echo "CUDA_LIB_DIR=$LIB_DIR" >> $GITHUB_ENV
         shell: bash
 
-      # Build the wheel using maturin.
-      # We set LD_LIBRARY_PATH using the path found in the previous step to ensure that
-      # auditwheel can locate libcuda.so.1 for repairing the wheel.
       - name: Build wheel
         env:
           LD_LIBRARY_PATH: ${{ env.CUDA_LIB_DIR }}:${LD_LIBRARY_PATH}
           CUDA_COMPUTE_CAP: ${{ matrix.variant.compute-caps }}
         run: maturin build --release --out dist
+        shell: bash
+
+      - name: Repair wheel and Exclude PyTorch Libs
+        run: |
+          set -e
+          # Find the original wheel created by maturin
+          ORIGINAL_WHEEL=$(find dist -name "*.whl" -print -quit)
+          if [ -z "$ORIGINAL_WHEEL" ]; then
+            echo "::error::No wheel file found in dist/ directory."
+            exit 1
+          fi
+          echo "Repairing wheel: $ORIGINAL_WHEEL"
+
+          # Define the library path for PyTorch, required by auditwheel for analysis
+          TORCH_LIB_PATH=$(python -c 'import torch, os; print(os.path.join(os.path.dirname(torch.__file__), "lib"))')
+
+          # Repair the wheel, excluding the large PyTorch libraries to reduce size.
+          # The repaired, smaller wheel will be created in the dist/ directory.
+          LD_LIBRARY_PATH=${TORCH_LIB_PATH}:${LD_LIBRARY_PATH} auditwheel repair "$ORIGINAL_WHEEL" -w dist \
+            --exclude libtorch.so \
+            --exclude libtorch_cpu.so \
+            --exclude libtorch_python.so \
+            --exclude libtorch_cuda.so
+
+          # Remove the original, unrepaired wheel
+          rm "$ORIGINAL_WHEEL"
+          echo "Successfully repaired wheel and excluded PyTorch libraries."
         shell: bash
 
       - name: Upload wheel artifact
