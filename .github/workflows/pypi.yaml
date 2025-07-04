@@ -1,3 +1,8 @@
+# This workflow builds and publishes Python distributions to PyPI.
+# It uses a self-hosted runner and a PyTorch container image
+# to ensure the correct CUDA environment is available for the build.
+# It relies on Trusted Publishing for secure authentication with PyPI.
+
 name: Build and Publish Python 🐍 distributions
 
 on:
@@ -7,7 +12,7 @@ on:
 
 jobs:
   build-wheels:
-    name: Build wheel for Python ${{ matrix.variant.python-version }} on self-hosted
+    name: Build wheel for ${{ matrix.variant.name }} on self-hosted
     runs-on: self-hosted
 
     container:
@@ -19,31 +24,7 @@ jobs:
         variant:
           - {
               name: "cuda",
-              python-version: "3.9",
-              cuda-version: "12.1",
-              compute-caps: "80",
-            }
-          - {
-              name: "cuda",
               python-version: "3.10",
-              cuda-version: "12.1",
-              compute-caps: "80",
-            }
-          - {
-              name: "cuda",
-              python-version: "3.11",
-              cuda-version: "12.1",
-              compute-caps: "80",
-            }
-          - {
-              name: "cuda",
-              python-version: "3.12",
-              cuda-version: "12.1",
-              compute-caps: "80",
-            }
-          - {
-              name: "cuda",
-              python-version: "3.13",
               cuda-version: "12.1",
               compute-caps: "80",
             }
@@ -51,18 +32,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Set up Python ${{ matrix.variant.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.variant.python-version }}
-
-      - name: Get Python Library Path and Set LD_LIBRARY_PATH
-        run: |
-          PYTHON_LIB_DIR=$(python -c "import sysconfig; print(sysconfig.get_config_var('LIBDIR'))")
-          echo "Found Python library directory: $PYTHON_LIB_DIR"
-          echo "LD_LIBRARY_PATH=$PYTHON_LIB_DIR:${LD_LIBRARY_PATH}" >> $GITHUB_ENV
-        shell: bash
 
       - name: Install build dependencies
         run: |
@@ -75,11 +44,9 @@ jobs:
 
       - name: Install Python build dependencies
         run: pip install maturin>=1.8.6 numpy>=1.26.4
-        shell: bash
 
       - name: Generate pyproject.toml
         run: python generate_configs.py ${{ matrix.variant.name }}
-        shell: bash
 
       - name: Find NVIDIA Driver Library Path
         id: find_cuda_lib
@@ -96,7 +63,7 @@ jobs:
 
       - name: Build wheel
         env:
-          LD_LIBRARY_PATH: ${{ env.CUDA_LIB_DIR }}:${LD_LIBRARY_PATH} # This will now include Python's lib dir
+          LD_LIBRARY_PATH: ${{ env.CUDA_LIB_DIR }}:${LD_LIBRARY_PATH}
           CUDA_COMPUTE_CAP: ${{ matrix.variant.compute-caps }}
         run: maturin build --release --out dist
         shell: bash
@@ -120,7 +87,7 @@ jobs:
           echo "Deleting CUDA libraries..."
           # This find command will print the files being deleted, which is useful for debugging.
           find "$UNPACK_DIR" -type f \( \
-            -name 'lib*.so*' \
+            -name 'libc*.so*' \
           \) -print -delete
 
           echo "Re-packing the wheel..."
