@@ -41,7 +41,7 @@ jobs:
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
         with:
-          name: python-package-wheels
+          name: python-package-wheels-${{ matrix.variant.name }}
           path: dist/
 
   publish-to-pypi:
@@ -53,7 +53,6 @@ jobs:
       - name: Download all wheel artifacts
         uses: actions/download-artifact@v4
         with:
-          name: python-package-wheels-{{ matrix.variant.name }}
           path: dist/
 
       - name: Publish to PyPI
