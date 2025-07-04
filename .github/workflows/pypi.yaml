@@ -37,11 +37,6 @@ jobs:
           apt-get install -y build-essential curl libssl-dev pkg-config
         shell: bash
 
-      - name: Set up Python ${{ matrix.variant.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.variant.python-version }}
-
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
