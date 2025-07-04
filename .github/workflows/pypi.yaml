@@ -1,0 +1,51 @@
+name: Publish Python 🐍 distributions to PyPI
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-publish:
+    name: Build and publish for ${{ matrix.variant.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        variant:
+          - name: "default"
+            python-version: "3.9"
+          - name: "metal"
+            python-version: "3.9"
+          - name: "accelerate"
+            python-version: "3.9"
+          - name: "cuda"
+            python-version: "3.9"
+          - name: "mkl"
+            python-version: "3.9"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.variant.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.variant.python-version }}
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: pip install maturin>=1.8.6 numpy>=1.26.4
+
+      - name: Generate pyproject.toml for ${{ matrix.variant.name }}
+        run: python generate_configs.py ${{ matrix.variant.name }}
+
+      - name: Build wheel
+        run: maturin build --release --out dist
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          packages_dir: dist/
