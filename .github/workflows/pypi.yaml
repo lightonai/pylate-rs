@@ -74,6 +74,7 @@ jobs:
       - name: Build wheel
         env:
           CUDA_COMPUTE_CAP: ${{ matrix.variant.compute-caps }}
+          CUDA_HOME: "/usr"
         run: maturin build --release --out dist
 
       - name: Upload wheel artifact
