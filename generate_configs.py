@@ -1,6 +1,7 @@
 """Generate pyproject.toml for different build variants of pylate-rs."""
 
 import argparse
+import sys # Import sys module
 
 CONFIGS = {
     "default": {
@@ -28,6 +29,9 @@ CONFIGS = {
 
 def generate_config(variant_name: str, base_name="pylate-rs"):
     """Generate a pyproject.toml file for a specific build variant."""
+    if sys.stdout.encoding != 'utf-8':
+        sys.stdout.reconfigure(encoding='utf-8')
+
     config = CONFIGS.get(variant_name)
     if not config:
         error = f"Unknown variant '{variant_name}'. Available: {list(CONFIGS.keys())}"
