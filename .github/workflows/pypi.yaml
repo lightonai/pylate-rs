@@ -8,22 +8,16 @@ on:
 jobs:
   build-wheels:
     name: Build wheel for ${{ matrix.variant.name }} on ${{ matrix.variant.os }}
-    runs-on: ubuntu-22.04-gpu
+    runs-on: ${{ matrix.variant.os }}
     strategy:
       fail-fast: false
       matrix:
         variant:
           - {
               name: "cuda",
-              os: "ubuntu-latest", # This OS is for reference, the 'runs-on' tag above is what matters.
-              python-version: "3.9",
-              cuda-version: "12.1.0",
-            }
-          - {
-              name: "cuda",
               os: "ubuntu-latest",
-              python-version: "3.9",
-              cuda-version: "11.8.0",
+              python-version: "3.12",
+              cuda-version: "12.1.0",
             }
 
     steps:
