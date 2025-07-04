@@ -36,16 +36,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # The 'setup-python' step has been removed. The python:3.12 container
-      # already provides the correct Python environment, and this step was
-      # causing a conflict with the container's OS detection.
-
       # The following steps will run inside the container environment.
       # The 'slim' container is minimal, so we install build-essential for compilation.
       - name: Install build dependencies
         run: |
           apt-get update
-          apt-get install -y build-essential
+          apt-get install -y build-essential curl
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
