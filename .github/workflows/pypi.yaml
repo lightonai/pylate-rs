@@ -30,6 +30,7 @@ jobs:
               os: "ubuntu-latest",
               python-version: "3.12",
               cuda-version: "12.5.0",
+              compute-caps: "8.0,8.6,8.9,9.0",
             }
 
     steps:
@@ -65,6 +66,8 @@ jobs:
 
       - name: Build wheel
         shell: bash -l {0}
+        env:
+          CUDA_COMPUTE_CAP: ${{ matrix.variant.compute-caps }}
         run: maturin build --release --out dist
 
       - name: Upload wheel artifact
