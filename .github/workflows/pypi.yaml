@@ -14,9 +14,6 @@ jobs:
     name: Build wheel for ${{ matrix.variant.name }} on self-hosted
     runs-on: self-hosted
 
-    # Use an official PyTorch image with CUDA pre-installed.
-    # This simplifies the environment setup.
-    # Note: This image uses Python 3.10 and CUDA 12.1.
     container:
       image: pytorch/pytorch:2.3.1-cuda12.1-cudnn8-devel
 
@@ -26,8 +23,8 @@ jobs:
         variant:
           - {
               name: "cuda",
-              python-version: "3.10", # Updated to match the container image
-              cuda-version: "12.1", # Updated to match the container image
+              python-version: "3.10",
+              cuda-version: "12.1",
               compute-caps: "80",
             }
 
@@ -35,8 +32,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # The PyTorch devel image comes with many build tools,
-      # but we ensure essential ones are present.
       - name: Install build dependencies
         run: |
           apt-get update
@@ -54,7 +49,6 @@ jobs:
 
       - name: Build wheel
         env:
-          # Pass the CUDA compute capability to the build script
           CUDA_COMPUTE_CAP: ${{ matrix.variant.compute-caps }}
         run: maturin build --release --out dist
 
@@ -68,7 +62,6 @@ jobs:
     name: Publish to PyPI
     needs: build-wheels
     runs-on: ubuntu-latest
-    # Required to request an OIDC token from GitHub.
     permissions:
       id-token: write
 
@@ -83,6 +76,6 @@ jobs:
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@v1.12.4
         with:
-          # Use a trusted publisher on PyPI instead of a password/token.
-          # This is more secure.
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
           skip-existing: true
