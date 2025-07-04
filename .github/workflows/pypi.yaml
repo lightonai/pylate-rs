@@ -11,16 +11,9 @@ on:
 jobs:
   build-wheels:
     name: Build wheel for ${{ matrix.variant.name }} on self-hosted
+    # Running on the host is necessary for the cuda-toolkit action to work correctly.
+    # Ensure the self-hosted runner has a compatible OS (e.g., Ubuntu).
     runs-on: self-hosted
-
-    # Set a default shell to ensure Conda is activated for all subsequent steps.
-    defaults:
-      run:
-        shell: bash -l {0}
-
-    # Use a container for a consistent and clean build environment.
-    container:
-      image: python:3.12-slim-bookworm
 
     strategy:
       fail-fast: false
@@ -37,24 +30,27 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Install essential build tools inside the minimal container.
-      - name: Install build dependencies
+      - name: Install OS dependencies
         run: |
-          apt-get update
-          apt-get install -y build-essential curl libssl-dev pkg-config
-        shell: bash # This step does not require the Conda shell.
+          sudo apt-get update
+          sudo apt-get install -y build-essential curl libssl-dev pkg-config
+        shell: bash
 
-      - name: Setup Conda
-        uses: conda-incubator/setup-miniconda@v3
+      - name: Set up Python ${{ matrix.variant.python-version }}
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.variant.python-version }}
-          auto-update-conda: true
-
-      - name: Install CUDA Toolkit
-        run: conda install -y -c conda-forge cudatoolkit-dev
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Install CUDA Toolkit ${{ matrix.variant.cuda-version }}
+        uses: Jimver/cuda-toolkit@v0.2.24
+        id: cuda-toolkit
+        with:
+          cuda: ${{ matrix.variant.cuda-version }}
+          # Suffix is required for matrix builds to prevent artifact name conflicts.
+          log-file-suffix: ${{ matrix.variant.name }}-${{ matrix.variant.cuda-version }}
 
       - name: Install Python build dependencies
         run: pip install maturin>=1.8.6 numpy>=1.26.4
@@ -65,6 +61,7 @@ jobs:
       - name: Build wheel
         env:
           CUDA_COMPUTE_CAP: ${{ matrix.variant.compute-caps }}
+        # The cuda-toolkit action sets the necessary environment variables (e.g., CUDA_PATH).
         run: maturin build --release --out dist
 
       - name: Upload wheel artifact
