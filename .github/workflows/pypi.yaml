@@ -53,7 +53,7 @@ jobs:
       - name: Download all wheel artifacts
         uses: actions/download-artifact@v4
         with:
-          name: python-package-wheels
+          name: python-package-wheels-{{ matrix.variant.name }}
           path: dist/
 
       - name: Publish to PyPI
