@@ -32,11 +32,13 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      # ✨ New step to install the CUDA Toolkit ✨
       - name: Install CUDA Toolkit ${{ matrix.variant.cuda-version }}
         uses: Jimver/cuda-toolkit@v0.2.24
         with:
           cuda: ${{ matrix.variant.cuda-version }}
+          method: "network"
+          sub-packages: '["compiler", "cudart-dev", "libraries-dev"]'
+          non-cuda-sub-packages: '["libcublas-dev", "libcurand-dev", "libcudnn8-dev"]'
 
       - name: Install dependencies
         run: pip install maturin>=1.8.6 numpy>=1.26.4
