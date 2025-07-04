@@ -13,10 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         variant:
-          - { name: "default", os: "macos-latest", python-version: "3.9" }
-          - { name: "default", os: "ubuntu-latest", python-version: "3.9" }
-          - { name: "metal", os: "macos-latest", python-version: "3.9" }
-          - { name: "accelerate", os: "macos-latest", python-version: "3.9" }
+          - { name: "cuda", os: "ubuntu-latest", python-version: "3.9" }
 
     steps:
       - name: Checkout repository
