@@ -36,7 +36,7 @@ jobs:
       - name: Install build dependencies
         run: |
           apt-get update
-          apt-get install -y --no-install-recommends build-essential curl libssl-dev pkg-config zip
+          apt-get install -y --no-install-recommends build-essential curl libssl-dev pkg-config zip unzip
         shell: bash
 
       - name: Install Rust
