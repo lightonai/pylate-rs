@@ -7,13 +7,17 @@ on:
 
 jobs:
   build-and-publish:
-    name: Build and publish for ${{ matrix.variant.name }}
-    runs-on: ubuntu-latest
+    name: Build and publish for ${{ matrix.variant.name }} on ${{ matrix.variant.os }}
+    runs-on: ${{ matrix.variant.os }}
     strategy:
+      fail-fast: false
       matrix:
         variant:
-          - name: "default"
-            python-version: "3.9"
+          - { name: "default", os: "ubuntu-latest", python-version: "3.9" }
+          - { name: "metal", os: "macos-latest", python-version: "3.9" }
+          - { name: "accelerate", os: "macos-latest", python-version: "3.9" }
+          - { name: "cuda", os: "ubuntu-latest", python-version: "3.9" }
+          - { name: "mkl", os: "windows-latest", python-version: "3.9" }
 
     steps:
       - name: Checkout repository
