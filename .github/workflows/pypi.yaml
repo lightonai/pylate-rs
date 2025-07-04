@@ -30,7 +30,7 @@ jobs:
               os: "ubuntu-latest",
               python-version: "3.12",
               cuda-version: "12.5.0",
-              compute-caps: "8.0,8.6,8.9,9.0",
+              compute-caps: "80,86,89,90",
             }
 
     steps:
