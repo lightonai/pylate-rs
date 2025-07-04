@@ -36,7 +36,7 @@ jobs:
       - name: Install build dependencies
         run: |
           apt-get update
-          apt-get install -y --no-install-recommends build-essential curl libssl-dev pkg-config zip unzip
+          apt-get install -y --no-install-recommends build-essential curl libssl-dev pkg-config unzip
         shell: bash
 
       - name: Install Rust
@@ -65,19 +65,22 @@ jobs:
         env:
           LD_LIBRARY_PATH: ${{ env.CUDA_LIB_DIR }}:${LD_LIBRARY_PATH}
           CUDA_COMPUTE_CAP: ${{ matrix.variant.compute-caps }}
-          AUDITWHEEL_EXCLUDE: "libcuda.so,libnvJitLink.so,libcudart.so,libcublas.so,libcufft.so,libcurand.so,libcusolver.so,libcusparse.so,libcudnn.so"
-        run: maturin build --release --out dist
+        run: |
+          # Explicitly export AUDITWHEEL_EXCLUDE to ensure it's picked up by child processes.
+          # This prevents bundling large CUDA libraries into the wheel.
+          export AUDITWHEEL_EXCLUDE="libcuda.so,libnvJitLink.so,libcudart.so,libcublas.so,libcufft.so,libcurand.so,libcusolver.so,libcusparse.so,libcudnn.so"
+          echo "AUDITWHEEL_EXCLUDE is set to: $AUDITWHEEL_EXCLUDE"
+          maturin build --release --out dist
         shell: bash
 
       - name: Verify wheel contents and size
         run: |
           echo "--- Verifying wheel contents ---"
           WHEEL_FILE=$(ls dist/*.whl)
+          # The grep command should now only show your project's .so file and system libs like libcrypto
           unzip -l $WHEEL_FILE | grep '\.so'
           echo "--- Verifying wheel size ---"
           ls -lh dist
-          # Optionally, fail the build if the wheel is still too large
-          # find dist -size +95M -exec echo "::error::Wheel size exceeds 95MB" \; -exec exit 1 \;
 
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
