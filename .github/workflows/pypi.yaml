@@ -62,10 +62,22 @@ jobs:
       - name: Generate pyproject.toml
         run: python generate_configs.py ${{ matrix.variant.name }}
 
+      # ❗️ FIX: Directly configure Cargo with the CUDA path
+      # This creates a config file that Cargo will automatically use for the build,
+      # which is more reliable than environment variables.
+      - name: Configure Cargo for CUDA
+        run: |
+          mkdir -p .cargo
+          echo '[env]' > .cargo/config.toml
+          echo "CUDA_ROOT = \"$CONDA_PREFIX\"" >> .cargo/config.toml
+          echo "✅ Cargo configured with CUDA_ROOT pointing to $CONDA_PREFIX"
+          cat .cargo/config.toml
+
       - name: Build wheel
         env:
+          # The compute capability is still passed as an environment variable
           CUDA_COMPUTE_CAP: ${{ matrix.variant.compute-caps }}
-        run: CUDA_ROOT="$CONDA_PREFIX" maturin build --release --out dist
+        run: maturin build --release --out dist
 
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
