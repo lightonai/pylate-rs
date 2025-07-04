@@ -8,7 +8,7 @@ on:
 jobs:
   build-wheels:
     name: Build wheel for ${{ matrix.variant.name }} on ${{ matrix.variant.os }}
-    runs-on: ${{ matrix.variant.os }}
+    runs-on: self-hosted
     strategy:
       fail-fast: false
       matrix:
@@ -31,12 +31,6 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
-
-      - name: Install CUDA Toolkit ${{ matrix.variant.cuda-version }}
-        uses: Jimver/cuda-toolkit@v0.2.24
-        with:
-          cuda: ${{ matrix.variant.cuda-version }}
-          method: "network"
 
       - name: Install dependencies
         run: pip install maturin>=1.8.6 numpy>=1.26.4
