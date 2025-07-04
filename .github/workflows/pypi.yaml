@@ -72,12 +72,17 @@ jobs:
         run: |
           set -e
           echo "--- Stripping CUDA libraries from the wheel ---"
-          WHEEL_FILE=$(ls dist/*.whl)
+          # Get the full path to the original wheel file
+          ORIGINAL_WHEEL_PATH=$(ls dist/*.whl)
           echo "Original wheel size:"
-          ls -lh "$WHEEL_FILE"
+          ls -lh "$ORIGINAL_WHEEL_PATH"
 
+          # Get just the filename of the wheel
+          WHEEL_FILENAME=$(basename "$ORIGINAL_WHEEL_PATH")
+
+          # Create a temporary directory for unpacking
           UNPACK_DIR=$(mktemp -d)
-          unzip -q "$WHEEL_FILE" -d "$UNPACK_DIR"
+          unzip -q "$ORIGINAL_WHEEL_PATH" -d "$UNPACK_DIR"
 
           echo "Deleting CUDA libraries..."
           # This find command will print the files being deleted, which is useful for debugging.
@@ -95,19 +100,21 @@ jobs:
           \) -print -delete
 
           echo "Re-packing the wheel..."
-          # Create a temporary new wheel file name
-          NEW_WHEEL_FILE="${WHEEL_FILE}.new"
-          (cd "$UNPACK_DIR" && zip -r -q "$NEW_WHEEL_FILE" .)
+          # The new wheel will be created with the original filename inside UNPACK_DIR
+          (cd "$UNPACK_DIR" && zip -r -q "$WHEEL_FILENAME" .)
 
-          # Move the new wheel file to replace the original
-          mv "$UNPACK_DIR/$NEW_WHEEL_FILE" "$WHEEL_FILE"
+          # Move the newly created wheel from UNPACK_DIR back to the dist directory
+          # and overwrite the original (unstripped) wheel.
+          mv "$UNPACK_DIR/$WHEEL_FILENAME" "$ORIGINAL_WHEEL_PATH"
+
+          # Clean up the temporary directory
           rm -rf "$UNPACK_DIR"
 
           echo "--- Verification ---"
           echo "Final wheel size:"
-          ls -lh "$WHEEL_FILE"
+          ls -lh "$ORIGINAL_WHEEL_PATH"
           echo "Final wheel contents:"
-          unzip -l "$WHEEL_FILE" | grep '\.so'
+          unzip -l "$ORIGINAL_WHEEL_PATH" | grep '\.so'
         shell: bash
 
       - name: Upload wheel artifact
