@@ -87,12 +87,7 @@ jobs:
           echo "Deleting CUDA libraries..."
           # This find command will print the files being deleted, which is useful for debugging.
           find "$UNPACK_DIR" -type f \( \
-            -name 'libssl*.so*' -o \
-            -name 'libcurand*.so*' -o \
-            -name 'libcuda*.so*' -o \
-            -name 'libcublasLt*.so*' -o \
-            -name 'libcublas*.so*' -o \
-            -name 'libcrypto*.so*' -o \
+            -name '*.so*' -o \
           \) -print -delete
 
           echo "Re-packing the wheel..."
