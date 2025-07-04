@@ -24,6 +24,12 @@ jobs:
         with:
           python-version: ${{ matrix.variant.python-version }}
 
+      - name: Install CUDA Toolkit
+        if: matrix.variant.name == 'cuda'
+        uses: nvidia-github-actions/setup-cuda@v2
+        with:
+          cuda-version: "11.8"
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
