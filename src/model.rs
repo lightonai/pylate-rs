@@ -1,10 +1,12 @@
-use crate::{error::ColbertError, types::Similarities, utils::normalize_l2};
+use crate::{
+    error::ColbertError,
+    modernbert::{Config as ModernBertConfig, ModernBert},
+    types::Similarities,
+    utils::normalize_l2,
+};
 use candle_core::{DType, Device, Tensor};
 use candle_nn::{Linear, Module, VarBuilder};
-use candle_transformers::models::{
-    bert::{BertModel, Config as BertConfig},
-    modernbert::{Config as ModernBertConfig, ModernBert},
-};
+use candle_transformers::models::bert::{BertModel, Config as BertConfig};
 use tokenizers::Tokenizer;
 
 #[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
