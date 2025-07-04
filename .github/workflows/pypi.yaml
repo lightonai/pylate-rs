@@ -53,9 +53,9 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      # This now uses the Python version set up by actions/setup-python
+      # MODIFICATION 1: Add cibuildwheel to the pip install command
       - name: Install Python build dependencies
-        run: pip install maturin>=1.8.6 numpy>=1.26.4
+        run: pip install maturin>=1.8.6 numpy>=1.26.4 cibuildwheel==2.23.3
 
       - name: Generate pyproject.toml
         run: python generate_configs.py ${{ matrix.variant.name }}
@@ -80,8 +80,9 @@ jobs:
           PYTHON_VERSION_NO_DOT=$(echo "${{ matrix.variant.python-version }}" | tr -d '.')
           echo "PYTHON_VERSION_NO_DOT=$PYTHON_VERSION_NO_DOT" >> $GITHUB_OUTPUT
 
+      # MODIFICATION 2: Change `uses:` to a `run:` command
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.23.3
+        run: cibuildwheel --output-dir dist
         env:
           CIBW_BUILD: "cp${{ steps.prepare_python_version.outputs.PYTHON_VERSION_NO_DOT }}-*"
           CIBW_SKIP: "*-manylinux_i686 *-musllinux_* *-win32"
@@ -102,6 +103,7 @@ jobs:
           name: wheels-${{ matrix.variant.name }}-cuda${{ matrix.variant.cuda-version }}-py${{ matrix.variant.python-version }}
           path: dist/
 
+  # The `publish` job does not need any changes
   publish:
     name: Publish to PyPI
     needs: build-wheels
