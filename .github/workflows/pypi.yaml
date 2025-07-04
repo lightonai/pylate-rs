@@ -69,7 +69,7 @@ jobs:
         env:
           LD_LIBRARY_PATH: ${{ env.CUDA_LIB_DIR }}:${LD_LIBRARY_PATH}
           CUDA_COMPUTE_CAP: ${{ matrix.variant.compute-caps }}
-        run: maturin build --release --out dist --manylinux 2014
+        run: maturin build --release --out dist
         shell: bash
 
       - name: Upload wheel artifact
