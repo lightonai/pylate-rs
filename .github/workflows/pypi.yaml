@@ -73,6 +73,7 @@ jobs:
           CIBW_BUILD: "cp${{ steps.prepare_python_version.outputs.PYTHON_VERSION_NO_DOT }}-*"
           CIBW_SKIP: "*-manylinux_i686 *-musllinux_* *-win32"
           CIBW_BUILD_VERBOSITY: 1
+          LIBTORCH_BYPASS_VERSION_CHECK: 1
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
           CIBW_MANYLINUX_ARM64_IMAGE: manylinux_2_28"
           CIBW_ENVIRONMENT: |
