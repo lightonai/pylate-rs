@@ -10,20 +10,15 @@ on:
 
 jobs:
   build-wheels:
-    # This job name is now dynamic based on the build matrix.
     name: Build wheel for ${{ matrix.variant.name }} on self-hosted
-    # This job now runs on a self-hosted runner.
     runs-on: self-hosted
 
-    # Set a default shell for all steps to ensure Conda is activated.
-    # The `setup-miniconda` action configures the login shell (`-l`)
-    # to automatically activate the base Conda environment.
+    # Set a default shell to ensure Conda is activated for all subsequent steps.
     defaults:
       run:
         shell: bash -l {0}
 
-    # We use a container to ensure a consistent build environment with the
-    # correct Python version, avoiding issues with the host OS.
+    # Use a container for a consistent and clean build environment.
     container:
       image: python:3.12-slim-bookworm
 
@@ -31,11 +26,8 @@ jobs:
       fail-fast: false
       matrix:
         variant:
-          # The 'os' key is now descriptive metadata, as the job runs in a
-          # container on a self-hosted runner.
           - {
               name: "cuda",
-              os: "ubuntu-latest",
               python-version: "3.12",
               cuda-version: "12.5.0",
               compute-caps: "80",
@@ -45,13 +37,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # The 'slim' container is minimal, so we install build-essential for compilation.
-      # This step does not require the Conda shell.
+      # Install essential build tools inside the minimal container.
       - name: Install build dependencies
         run: |
           apt-get update
           apt-get install -y build-essential curl libssl-dev pkg-config
-        shell: bash
+        shell: bash # This step does not require the Conda shell.
 
       - name: Setup Conda
         uses: conda-incubator/setup-miniconda@v3
@@ -59,45 +50,43 @@ jobs:
           python-version: ${{ matrix.variant.python-version }}
           auto-update-conda: true
 
-      - name: Install CUDA Toolkit from Conda
+      - name: Install CUDA Toolkit
         run: conda install -y -c nvidia cuda-toolkit=${{ matrix.variant.cuda-version }}
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Install Python dependencies
+      - name: Install Python build dependencies
         run: pip install maturin>=1.8.6 numpy>=1.26.4
 
-      - name: Generate pyproject.toml for ${{ matrix.variant.name }}
+      - name: Generate pyproject.toml
         run: python generate_configs.py ${{ matrix.variant.name }}
 
       - name: Build wheel
         env:
           CUDA_COMPUTE_CAP: ${{ matrix.variant.compute-caps }}
-          CUDA_HOME: "/usr"
+          # FIX: Point the build script to the CUDA toolkit within the Conda environment.
+          # The candle-kernels crate specifically checks for the CUDA_ROOT variable.
+          CUDA_ROOT: ${{ env.CONDA_PREFIX }}
         run: maturin build --release --out dist
 
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
         with:
-          # Updated artifact name to reflect the self-hosted runner environment.
-          name: wheels-${{ matrix.variant.name }}${{ matrix.variant.cuda-version && format('-cuda{0}', matrix.variant.cuda-version) || '' }}-selfhosted-py${{ matrix.variant.python-version }}
+          name: wheels-${{ matrix.variant.name }}-cuda${{ matrix.variant.cuda-version }}-py${{ matrix.variant.python-version }}
           path: dist/
 
   publish:
     name: Publish to PyPI
-    # This job will only run after all 'build-wheels' jobs complete successfully.
     needs: build-wheels
     runs-on: ubuntu-latest
-    # Required permissions for publishing to PyPI using a trusted publisher.
     permissions:
-      id-token: write
+      id-token: write # Required for trusted publishing to PyPI.
 
     steps:
       - name: Download all wheels
         uses: actions/download-artifact@v4
         with:
-          # Use a pattern to download all artifacts starting with 'wheels-'
           pattern: wheels-*
           path: dist
           merge-multiple: true
@@ -105,7 +94,5 @@ jobs:
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@v1.12.4
         with:
-          # Use the token-based authentication for PyPI
-          user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
           skip-existing: true
