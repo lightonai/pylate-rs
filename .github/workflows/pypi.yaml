@@ -51,7 +51,7 @@ jobs:
           auto-update-conda: true
 
       - name: Install CUDA Toolkit
-        run: conda install -c conda-forge cudatoolkit-dev
+        run: conda install -y -c conda-forge cudatoolkit-dev
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
