@@ -33,8 +33,8 @@ jobs:
 
       - name: Install build dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential curl libssl-dev pkg-config
+          apt-get update
+          apt-get install -y build-essential curl libssl-dev pkg-config
         shell: bash
 
       - name: Set up Python ${{ matrix.variant.python-version }}
