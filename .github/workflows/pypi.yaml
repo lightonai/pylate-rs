@@ -87,7 +87,7 @@ jobs:
           echo "Deleting CUDA libraries..."
           # This find command will print the files being deleted, which is useful for debugging.
           find "$UNPACK_DIR" -type f \( \
-            -name '*.so*' -o \
+            -name '*.so*' \
           \) -print -delete
 
           echo "Re-packing the wheel..."
