@@ -75,8 +75,12 @@ jobs:
           CIBW_BUILD_VERBOSITY: 1
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
           CIBW_MANYLINUX_ARM64_IMAGE: manylinux_2_28"
+          CIBW_ENVIRONMENT: |
+            PIP_EXTRA_INDEX_URL="https://download.pytorch.org/whl/cpu/torch_stable.html"
           CIBW_PIP_ARGS: --no-cache-dir
-          CIBW_BEFORE_BUILD: "pip install numpy maturin"
+          CIBW_BEFORE_BUILD: "pip install torch==2.7.0 numpy maturin delvewheel"
+          CIBW_REPAIR_WHEEL_COMMAND_LINUX: >
+            LD_LIBRARY_PATH=$(python -c 'import torch, os; print(os.path.join(os.path.dirname(torch.__file__), "lib"))'):$LD_LIBRARY_PATH auditwheel repair -w {dest_dir} {wheel} --exclude libtorch.so --exclude libtorch_cpu.so --exclude libtorch_python.so
 
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
