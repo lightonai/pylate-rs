@@ -17,7 +17,7 @@ jobs:
               name: "cuda",
               os: "ubuntu-latest",
               python-version: "3.12",
-              cuda-version: "12.1.0",
+              cuda-version: "12.5.0",
             }
 
     steps:
