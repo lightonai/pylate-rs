@@ -25,6 +25,12 @@ jobs:
           use-github-cache: false
           use-local-cache: false
 
+       - name: Set CUDA environment variables
+        run: |
+          echo "CUDA_HOME=${{ steps.cuda-toolkit.outputs.CUDA_HOME }}" >> $GITHUB_ENV
+          echo "${{ steps.cuda-toolkit.outputs.CUDA_HOME }}/bin" >> $GITHUB_PATH
+          echo "LD_LIBRARY_PATH=${{ steps.cuda-toolkit.outputs.CUDA_HOME }}/lib64:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+
       - name: Set up Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
 
