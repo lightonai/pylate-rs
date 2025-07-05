@@ -59,12 +59,14 @@ jobs:
 
       - name: Rename Wheel with CUDA Version
         run: |
-          # This step renames the wheel to include the CUDA version as a local version identifier (e.g., +cu129), following PEP 440.
+          # This step renames the wheel to include the CUDA version and simplify the ABI/platform tags.
           original_wheel=$(ls dist/*.whl)
           # Format the CUDA version string from "12.9.0" to "cu129"
           cuda_version_tag="cu$(echo "${{ matrix.cuda }}" | cut -d. -f1,2 | tr -d '.')"
-          # Insert the CUDA version tag before the Python/ABI/platform tags.
-          # e.g., my_package-0.1.0-cp39-cp39-linux.whl -> my_package-0.1.0+cu129-cp39-cp39-linux.whl
-          new_wheel=$(echo "$original_wheel" | sed "s/\(-cp[0-9].*\)/+${cuda_version_tag}\1/")
+          # Format the Python version string from "3.9" to "cp39"
+          python_tag="cp$(echo "${{ matrix.python-version }}" | tr -d '.')"
+          # Replace the complex python/abi/platform tags with a simplified, PEP 440-compliant tag.
+          # e.g., my_package-0.1.0-cp39-cp39-linux.whl -> my_package-0.1.0+cu129-cp39.whl
+          new_wheel=$(echo "$original_wheel" | sed "s/-cp[0-9].*\.whl/+${cuda_version_tag}-${python_tag}.whl/")
           mv "$original_wheel" "$new_wheel"
           echo "Renamed wheel to: $(basename "$new_wheel")"
