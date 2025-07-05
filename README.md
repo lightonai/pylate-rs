@@ -18,19 +18,21 @@
 
 ## ⭐️ Overview
 
-**pylate-rs** is a high-performance inference engine for [PyLate](https://github.com/lightonai/pylate) models, built in Rust for speed and efficiency. pylate-rs does not provide training capabilities, but it is designed to be used with models trained using PyLate, which supports a wide range of late interaction models like ColBERT, GTE, and more.
+**pylate-rs** is a high-performance inference engine for [PyLate](https://github.com/lightonai/pylate) models, meticulously crafted in Rust for optimal speed and efficiency.
 
-- **Accelerated Performance**: Significantly reduces model loading times, enabling fast cold starts in serverless environments and low-latency applications.
+While model training is handled by PyLate, which supports a variety of late interaction models, `pylate-rs` is engineered to execute these models at speeds.
 
-- **Lightweight Design**: Built with the [Candle](https://github.com/huggingface/candle) ML framework, pylate-rs has a minimal resource footprint ideal for serverless functions, edge computing, and other resource-constrained systems.
+- **Accelerated Performance**: Experience significantly faster model loading and rapid cold starts, making it ideal for serverless environments and low-latency applications.
 
-- **Broad Hardware Support**: Optimized for a range of hardware configurations, with dedicated builds for standard CPUs, Intel (MKL), Apple Silicon (Accelerate & Metal), and NVIDIA GPUs (CUDA).
+- **Lightweight Design**: Built on the [Candle](https://github.com/huggingface/candle) ML framework, `pylate-rs` maintains a minimal footprint suitable for resource-constrained systems like serverless functions and edge computing.
 
-- **Cross-Platform Integration**: Bindings for use in **Python**, **Rust**, and **JavaScript/WebAssembly** projects.
+- **Broad Hardware Support**: Optimized for diverse hardware, with dedicated builds for standard CPUs, Intel (MKL), Apple Silicon (Accelerate & Metal), and NVIDIA GPUs (CUDA).
 
-PyLate is the best in town tool to train late interaction models. Then pylate-rs can be paired with its companion library [**FastPlaid**](https://github.com/lightonai/fast-plaid) at inference time for a high-performance multi-vector search pipeline.
+- **Cross-Platform Integration**: Seamlessly integrate `pylate-rs` into your projects with bindings for Python, Rust, and JavaScript/WebAssembly.
 
-A WebAssembly demo is available [**online**](https://lightonai.github.io/pylate-rs/) with insights about pylate-rs.
+For a complete, high-performance multi-vector search pipeline, pair `pylate-rs` with its companion library, [**FastPlaid**](https://github.com/lightonai/fast-plaid), at inference time.
+
+Explore our [**WebAssembly live demo**](https://lightonai.github.io/pylate-rs/).
 
 &nbsp;
 
