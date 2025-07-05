@@ -38,4 +38,6 @@ jobs:
         run: pip install maturin>=1.8.6 numpy>=1.26.4
 
       - name: Build wheel
+        env:
+          CUDA_COMPUTE_CAP: "80"
         run: maturin build --release --out dist
