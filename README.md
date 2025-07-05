@@ -2,7 +2,7 @@
     <h1>pylate-rs</h1>
 </div>
 
-<p align="center"><img width=500 src="https://github.com/lightonai/fast-plaid/blob/6184631dd9b9609efac8ce43e3e15be2efbb5355/docs/logo.png"/></p>
+<p align="center"><img width=500 src="https://github.com/lightonai/pylate-rs/blob/01ee9895d83d6bc0a52ba826f6b634d33be479ce/docs/logo.jpg"/></p>
 
 <div align="center">
     <a href="https://lightonai.github.io/pylate-rs/"><img src="https://img.shields.io/badge/blog-%23000000.svg?style=for-the-badge&logoColor=white" alt="blog"></a>
