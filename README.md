@@ -6,6 +6,9 @@
 
 <div align="center">
     <a href="https://lightonai.github.io/pylate-rs/"><img src="https://img.shields.io/badge/blog-%23000000.svg?style=for-the-badge&logoColor=white" alt="blog"></a>
+    <a href="https://docs.rs/pylate-rs/latest/pylate_rs/all.html"><img src="https://img.shields.io/badge/crate-%23000000.svg?style=for-the-badge&logoColor=white" alt="crate"></a>
+    <a href="https://docs.rs/pylate-rs/latest/pylate_rs/all.html"><img src="https://img.shields.io/badge/crate-%23000000.svg?style=for-the-badge&logoColor=white" alt="crate"></a>
+
 </div>
 
 <div align="center">
