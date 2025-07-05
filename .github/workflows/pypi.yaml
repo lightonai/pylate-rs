@@ -22,6 +22,11 @@ jobs:
           - { name: "default", os: "ubuntu-latest", python-version: "3.11" }
           - { name: "default", os: "ubuntu-latest", python-version: "3.12" }
           - { name: "default", os: "ubuntu-latest", python-version: "3.13" }
+          - { name: "default", os: "windows-latest", python-version: "3.9" }
+          - { name: "default", os: "windows-latest", python-version: "3.10" }
+          - { name: "default", os: "windows-latest", python-version: "3.11" }
+          - { name: "default", os: "windows-latest", python-version: "3.12" }
+          - { name: "default", os: "windows-latest", python-version: "3.13" }
           # Metal variant
           - { name: "metal", os: "macos-latest", python-version: "3.9" }
           - { name: "metal", os: "macos-latest", python-version: "3.10" }
@@ -40,6 +45,11 @@ jobs:
           - { name: "mkl", os: "ubuntu-latest", python-version: "3.11" }
           - { name: "mkl", os: "ubuntu-latest", python-version: "3.12" }
           - { name: "mkl", os: "ubuntu-latest", python-version: "3.13" }
+          - { name: "mkl", os: "windows-latest", python-version: "3.9" }
+          - { name: "mkl", os: "windows-latest", python-version: "3.10" }
+          - { name: "mkl", os: "windows-latest", python-version: "3.11" }
+          - { name: "mkl", os: "windows-latest", python-version: "3.12" }
+          - { name: "mkl", os: "windows-latest", python-version: "3.13" }
 
     steps:
       - name: Checkout repository
