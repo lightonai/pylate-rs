@@ -263,7 +263,7 @@
             <div class="prose max-w-none space-y-16">
                 <p style="text-indent: 40px">
                     <a href="https://github.com/lightonai/pylate">PyLate</a>, is a powerful tool for research and
-                    training with ColBERT developped at <a href="https://www.lighton.ai/">LightOn</a>. It carries an
+                    training with ColBERT developped at <a href="https://www.lighton.ai/">LightOn</a>. It carries a
                     heavy set of
                     dependencies. That's fine for most environments and especially to train state-of-the-art information
                     retrieval models, but it can be a real headache when you just want to run inference in a live
@@ -279,8 +279,14 @@
                     The goal was to create a focused, lightweight tool that does one thing well: <strong>compute ColBERT
                         embeddings</strong>.
 
+                    </p>
+
+
+
                     <br>
                     <br>
+
+                    <p>
 
                     If you're not familiar with ColBERT, it's a model for computing sentence embeddings. <strong>As an
                         encoder-based model, it
@@ -490,7 +496,7 @@ Disneyland Paris is an entertainment resort in Chessy, 32 km east of Paris.</tex
 
                     <code>pylate-rs</code> implements a token reduction strategy following the <a
                         href="https://www.answer.ai/posts/colbert-pooling.html"> article
-                        from Benjamin Clavié</a>. The core idea is to find a <strong>balance between using all tokens
+                        from Benjamin Clavié and Antoine Chaffin</a>. The core idea is to find a <strong>balance between using all tokens
                         and using
                         only the most
                         salient ones</strong>.
@@ -567,41 +573,9 @@ Disneyland Paris is an entertainment resort in Chessy, 32 km east of Paris.</tex
 
             <div class="prose max-w-none mt-16">
 
-                <p>
-                    At LightOn, we are developing Generative Models, Encoders,
-                    ColBERT models and <a
-                        href="https://www.lighton.ai/lighton-blogs/lighton-integrates-visual-rag-into-its-platform">state-of-the-art
-                        RAG pipelines</a>. We released PyLate, an optimized solution for training ColBERT
-                    models on hardware ranging from a single CPU to a multi-GPU node.
+                    <p>
 
-                    <br>
-                    <br>
-
-                    In partnership with AnswerAI, LightOn released <a
-                        href="https://arxiv.org/abs/2412.13663">ModernBERT</a>, a new encoder that we fine-tuned to
-                    create <a
-                        href="https://www.lighton.ai/lighton-blogs/lighton-releases-gte-moderncolbert-first-state-of-the-art-late-interaction-model-trained-on-pylate">GTE-ModernColBERT</a>.
-
-                    <br>
-                    <br>
-
-                    LightOn also released <a
-                        href="https://www.lighton.ai/lighton-blogs/lighton-releases-reason-colbert">Reason-ModernColBERT</a>,
-                    which achieves state-of-the-art results on
-                    the <a href="https://huggingface.co/datasets/xlangai/BRIGHT">BRIGHT</a>
-                    benchmark. <strong>Both GTE-ModernColBERT and Reason-ModernColBERT models were trained with PyLate
-                        and are compatible with <code>pylate-rs</code></strong>.
-
-                    <br>
-                    <br>
-
-                    You can find all compatible models on the Hugging Face Hub under the <a
-                        href="https://huggingface.co/models?other=PyLate">PyLate tag</a>.
-
-                    <br>
-                    <br>
-
-                    Finally, we released <a href="https://github.com/lightonai/fast-plaid">fast-plaid</a>, a Rust
+                    In June 2O25, we released <a href="https://github.com/lightonai/fast-plaid">fast-plaid</a>, a Rust
                     implementation of the <a href="https://arxiv.org/abs/2205.09707">PLAID</a> algorithm for
                     <strong>efficient nearest-neighbor search</strong>. Paired with <code>pylate-rs</code>, fast-plaid
                     offers a
@@ -738,6 +712,46 @@ scores = fast_plaid.search(
 print(scores)
                                         </code></pre>
                         </div>
+
+                    <br>
+                    <p>
+                        At LightOn, we are developing Generative Models, Encoders,
+                        ColBERT models and <a
+                            href="https://www.lighton.ai/lighton-blogs/lighton-integrates-visual-rag-into-its-platform">state-of-the-art
+                            RAG pipelines</a>. We released PyLate, an optimized solution for training ColBERT
+                        models on hardware ranging from a single CPU to a multi-GPU node.
+                    
+                        <br>
+                        <br>
+                    
+                        In partnership with AnswerAI, LightOn released <a href="https://arxiv.org/abs/2412.13663">ModernBERT</a>, a new
+                        encoder state-of-the-art encoder. We later fine-tuned it to
+                        create <a
+                            href="https://www.lighton.ai/lighton-blogs/lighton-releases-gte-moderncolbert-first-state-of-the-art-late-interaction-model-trained-on-pylate">GTE-ModernColBERT</a>.
+                    
+                        <br>
+                        <br>
+                    
+                        LightOn also released <a
+                            href="https://www.lighton.ai/lighton-blogs/lighton-releases-reason-colbert">Reason-ModernColBERT</a>,
+                        which achieves state-of-the-art results on
+                        the <a href="https://huggingface.co/datasets/xlangai/BRIGHT">BRIGHT</a>
+                        benchmark. Reason-ModernColBERT outperforms models 45x larger on the gold standard for reasoning-intensive
+                        retrieval. <strong>Both GTE-ModernColBERT and Reason-ModernColBERT models were trained with PyLate
+                            and are compatible with <code>pylate-rs</code></strong>.
+                    
+                        <br>
+                        <br>
+                    
+                        You can find all compatible models on the Hugging Face Hub under the <a
+                            href="https://huggingface.co/models?other=PyLate">PyLate tag</a>.
+
+                        <br>
+                        <br>
+
+                        For more information, visit the PyLate and pylate-rs repositories on GitHub and leave a ⭐️ if you find them useful!
+                    
+                        <p>
         </article>
         <div class="prose max-w-none mt-16">
             <p class="text-left" style="font-size: 1rem;">

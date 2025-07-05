@@ -34,6 +34,12 @@ jobs:
           - { name: "accelerate", os: "macos-latest", python-version: "3.11" }
           - { name: "accelerate", os: "macos-latest", python-version: "3.12" }
           - { name: "accelerate", os: "macos-latest", python-version: "3.13" }
+          # MKL variant
+          - { name: "mkl", os: "ubuntu-latest", python-version: "3.9" }
+          - { name: "mkl", os: "ubuntu-latest", python-version: "3.10" }
+          - { name: "mkl", os: "ubuntu-latest", python-version: "3.11" }
+          - { name: "mkl", os: "ubuntu-latest", python-version: "3.12" }
+          - { name: "mkl", os: "ubuntu-latest", python-version: "3.13" }
 
     steps:
       - name: Checkout repository

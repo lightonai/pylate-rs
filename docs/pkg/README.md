@@ -38,13 +38,15 @@ Install the version of `pylate-rs` that matches your hardware for optimal perfor
 
 ### Python
 
-| Target Hardware          | Installation Command               |
-| :----------------------- | :--------------------------------- |
-| **Standard CPU**         | `pip install pylate-rs`            |
-| **Apple CPU** (macOS)    | `pip install pylate-rs-accelerate` |
-| **Intel CPU** (MKL)      | `pip install pylate-rs-mkl`        |
-| **Apple GPU** (M1/M2/M3) | `pip install pylate-rs-metal`      |
-| **NVIDIA GPU** (CUDA)    | `pip install pylate-rs-cuda`       |
+| Target Hardware          | Installation Command                                     |
+| :----------------------- | :------------------------------------------------------- |
+| **Standard CPU**         | `pip install pylate-rs`                                  |
+| **Apple CPU** (macOS)    | `pip install pylate-rs-accelerate`                       |
+| **Intel CPU** (MKL)      | `pip install pylate-rs-mkl`                              |
+| **Apple GPU** (M1/M2/M3) | `pip install pylate-rs-metal`                            |
+| **NVIDIA GPU** (CUDA)    | `pip install git+https://github.com/lightonai/pylate-rs` |
+
+Cuda wheels are not yet available on PyPI because of their size. But you can install them with the link to the repository. WIP.
 
 &nbsp;
 
@@ -74,7 +76,7 @@ from pylate_rs import models
 # Initialize the model for your target device ("cpu", "cuda", or "mps")
 model = models.ColBERT(
     model_name_or_path="lightonai/GTE-ModernColBERT-v1",
-    device="cpu"
+    device="cuda"
 )
 
 # Encode queries and documents
