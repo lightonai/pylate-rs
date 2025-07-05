@@ -6,6 +6,12 @@ on:
 jobs:
   build_cuda_wheels:
     runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ["3.9"]
+        cuda: ["12.9.0"]
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -13,13 +19,13 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.9"
+          python-version: ${{ matrix.python-version }}
 
       - name: Install CUDA Toolkit
         uses: Jimver/cuda-toolkit@v0.2.24
         id: cuda-toolkit
         with:
-          cuda: "12.9.0"
+          cuda: ${{ matrix.cuda }}
           method: "network"
           log-file-suffix: "3.9.txt"
           use-github-cache: false
@@ -38,6 +44,20 @@ jobs:
         run: pip install maturin>=1.8.6 numpy>=1.26.4
 
       - name: Build wheel
+        id: build_wheel
         env:
           CUDA_COMPUTE_CAP: "80"
         run: maturin build --release --out dist
+
+      - name: Rename wheel for release
+        id: rename_wheel
+        run: |
+          original_path="${{ steps.build_wheel.outputs.wheel_path }}"
+          cuda_version="${{ matrix.cuda }}"
+          cuda_tag="+cu$(echo $cuda_version | cut -d. -f1)$(echo $cuda_version | cut -d. -f2)"
+          new_filename=$(basename "$original_path" | sed "s/-cp[0-9]*/${cuda_tag}&/")
+          new_path="dist/${new_filename}"
+          echo "Renaming wheel to: $new_filename"
+          mv "$original_path" "$new_path"
+          # Set the new path as an output for the release step
+          echo "new_path=$new_path" >> $GITHUB_OUTPUT
