@@ -21,6 +21,8 @@ jobs:
         with:
           cuda: "12.9.0"
           log-file-suffix: "3.9.txt"
+          use-github-cache: false
+          use-local-cache: false
 
       - name: Set up Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
