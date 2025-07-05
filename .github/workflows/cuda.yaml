@@ -2,10 +2,18 @@ name: Build and Release CUDA Wheels
 
 on:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "The tag for the GitHub Release (e.g., v0.1.0)"
+        required: true
+        type: string
 
 jobs:
   build_cuda_wheels:
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
 
     strategy:
       matrix:
@@ -27,7 +35,7 @@ jobs:
         with:
           cuda: ${{ matrix.cuda }}
           method: "network"
-          log-file-suffix: "3.9.txt"
+          log-file-suffix: "cuda-${{ matrix.cuda }}-py-${{ matrix.python-version }}.txt"
           use-github-cache: false
           use-local-cache: false
 
@@ -40,7 +48,7 @@ jobs:
       - name: Set up Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
 
-      - name: Install Maturin
+      - name: Install Maturin and Dependencies
         run: pip install maturin>=1.8.6 numpy>=1.26.4
 
       - name: Build wheel
@@ -49,30 +57,14 @@ jobs:
           CUDA_COMPUTE_CAP: "80"
         run: maturin build --release --out dist
 
-      - name: Upload wheel artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: wheels-cuda-${{matrix.cuda}}-py${{ matrix.python-version }}
-          path: dist/
-
-  publish:
-    name: Publish to PyPI
-    needs: build_cuda_wheels
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-
-    steps:
-      - name: Download all wheels
-        uses: actions/download-artifact@v4
-        with:
-          pattern: wheels-*
-          path: dist
-          merge-multiple: true
-
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@v1.12.4
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}
-          skip-existing: true
+      - name: Rename Wheel with CUDA Version
+        run: |
+          # This step renames the wheel to include the CUDA version as a local version identifier (e.g., +cu129), following PEP 440.
+          original_wheel=$(ls dist/*.whl)
+          # Format the CUDA version string from "12.9.0" to "cu129"
+          cuda_version_tag="cu$(echo "${{ matrix.cuda }}" | cut -d. -f1,2 | tr -d '.')"
+          # Insert the CUDA version tag before the Python/ABI/platform tags.
+          # e.g., my_package-0.1.0-cp39-cp39-linux.whl -> my_package-0.1.0+cu129-cp39-cp39-linux.whl
+          new_wheel=$(echo "$original_wheel" | sed "s/\(-cp[0-9].*\)/+${cuda_version_tag}\1/")
+          mv "$original_wheel" "$new_wheel"
+          echo "Renamed wheel to: $(basename "$new_wheel")"
