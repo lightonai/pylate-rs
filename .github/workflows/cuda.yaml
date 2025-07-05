@@ -20,6 +20,7 @@ jobs:
         id: cuda-toolkit
         with:
           cuda: "12.9.0"
+          method: "network"
           log-file-suffix: "3.9.txt"
           use-github-cache: false
           use-local-cache: false
