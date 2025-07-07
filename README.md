@@ -65,7 +65,7 @@ cd pylate-rs
 pip install .
 ```
 
-Any help to pre-build and disribute the CUDA wheels would be greatly appreciated.
+Any help in pre-building and distributing CUDA wheels would be greatly appreciated.
 
 &nbsp;
 
