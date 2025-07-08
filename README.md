@@ -95,7 +95,7 @@ from pylate_rs import models
 # Initialize the model for your target device ("cpu", "cuda", or "mps")
 model = models.ColBERT(
     model_name_or_path="lightonai/GTE-ModernColBERT-v1",
-    device="cuda"
+    device="cpu"
 )
 
 # Encode queries and documents
