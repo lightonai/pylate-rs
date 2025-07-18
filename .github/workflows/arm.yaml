@@ -1,0 +1,57 @@
+name: Build Python Wheels for Ubuntu (ARM)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build_arm_wheels:
+    name: Build wheel for Python ${{ matrix.python-version }} on Ubuntu (aarch64)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        variant-name: ["default"]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Linux ARM wheel via cross-compilation
+        uses: messense/maturin-action@v1
+        env:
+          CFLAGS_aarch64_unknown_linux_gnu: -D__ARM_ARCH=8
+        with:
+          target: aarch64
+          manylinux: auto
+          args: --release --out dist -i python${{ matrix.python-version }}
+          before-script-linux: |
+            python -m pip install numpy>=1.26.4
+            python generate_configs.py ${{ matrix.variant-name }}
+
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-ubuntu-aarch64-py${{ matrix.python-version }}
+          path: dist/
+
+  publish:
+    name: Publish to PyPI
+    needs: build_arm_wheels
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Download all wheels
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          path: dist
+          merge-multiple: true
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@v1.12.4
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          skip-existing: true
