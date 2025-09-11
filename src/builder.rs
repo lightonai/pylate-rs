@@ -14,6 +14,7 @@ pub struct ColbertBuilder {
     query_prefix: Option<String>,
     document_prefix: Option<String>,
     mask_token: Option<String>,
+    do_query_expansion: Option<bool>,
     attend_to_expansion_tokens: Option<bool>,
     query_length: Option<usize>,
     document_length: Option<usize>,
@@ -30,6 +31,7 @@ impl ColbertBuilder {
             query_prefix: None,
             document_prefix: None,
             mask_token: None,
+            do_query_expansion: None,
             attend_to_expansion_tokens: None,
             query_length: None,
             document_length: None,
@@ -53,6 +55,12 @@ impl ColbertBuilder {
     /// Sets the mask token. Overrides the value from the `special_tokens_map.json` file.
     pub fn with_mask_token(mut self, mask_token: String) -> Self {
         self.mask_token = Some(mask_token);
+        self
+    }
+
+    /// Sets whether to perform query expansion. Overrides the value from the config file.
+    pub fn with_do_query_expansion(mut self, do_expansion: bool) -> Self {
+        self.do_query_expansion = Some(do_expansion);
         self
     }
 
@@ -183,6 +191,12 @@ impl TryFrom<ColbertBuilder> for ColBERT {
                 .to_string()
         });
 
+        let final_do_query_expansion = builder.do_query_expansion.unwrap_or_else(|| {
+            st_config["do_query_expansion"]
+                .as_bool()
+                .unwrap_or(true)
+        });
+
         let final_attend_to_expansion_tokens =
             builder.attend_to_expansion_tokens.unwrap_or_else(|| {
                 st_config["attend_to_expansion_tokens"]
@@ -205,6 +219,7 @@ impl TryFrom<ColbertBuilder> for ColBERT {
             final_query_prefix,
             final_document_prefix,
             mask_token,
+            final_do_query_expansion,
             final_attend_to_expansion_tokens,
             final_query_length,
             final_document_length,

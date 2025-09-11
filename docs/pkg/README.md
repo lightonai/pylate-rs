@@ -65,7 +65,7 @@ cd pylate-rs
 pip install .
 ```
 
-Any help to pre-build and disribute the CUDA wheels would be greatly appreciated.
+Any help in pre-building and distributing CUDA wheels would be greatly appreciated.
 
 &nbsp;
 
@@ -95,7 +95,7 @@ from pylate_rs import models
 # Initialize the model for your target device ("cpu", "cuda", or "mps")
 model = models.ColBERT(
     model_name_or_path="lightonai/GTE-ModernColBERT-v1",
-    device="cuda"
+    device="cpu"
 )
 
 # Encode queries and documents
@@ -180,7 +180,7 @@ mps       PyLate         580.81                     103.10                      
 mps       pylate-rs      291.71 (-50%)              23.26 (-77%)                 0.08 (-96%)
 ```
 
-Benchmark were run with Python. `pylate-rs` provide significant performance improvement, especially in scenarios requiring fast startup times. While on a Mac it takes up to 5 seconds to load a model with the Transformers backend and encode a single query, `pylate-rs` achieves this in just 0.11 seconds, making it ideal for low-latency applications. Don't expect `pylate-rs` to be much faster than `PyLate` to encode a lot of content at the same time as PyTorch is heavily optimized.
+Benchmarks were run with Python. `pylate-rs` provide significant performance improvement, especially in scenarios requiring fast startup times. While on a Mac it takes up to 5 seconds to load a model with the Transformers backend and encode a single query, `pylate-rs` achieves this in just 0.11 seconds, making it ideal for low-latency applications. Don't expect `pylate-rs` to be much faster than `PyLate` to encode a lot of content at the same time as PyTorch is heavily optimized.
 
 &nbsp;
 

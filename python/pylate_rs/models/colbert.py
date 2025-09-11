@@ -41,11 +41,12 @@ class ColBERT:
         query_length: int = 32,
         document_length: int = 180,
         batch_size: int = 32,
+        do_query_expansion: bool | None = None,
         attend_to_expansion_tokens: bool = False,
         query_prefix: str | None = None,
         document_prefix: str | None = None,
         mask_token: str = "[MASK]",  # noqa: S107
-    ):
+    ) -> None:
         """Initialize and configures the ColBERT model."""
         self.model = PyColBERT.from_pretrained(
             repo_id=model_name_or_path,
@@ -53,6 +54,7 @@ class ColBERT:
             query_length=query_length,
             document_length=document_length,
             batch_size=batch_size,
+            do_query_expansion=do_query_expansion,
             attend_to_expansion_tokens=attend_to_expansion_tokens,
             query_prefix=query_prefix,
             document_prefix=document_prefix,

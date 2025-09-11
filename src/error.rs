@@ -47,6 +47,21 @@ impl From<Box<dyn std::error::Error + Send + Sync>> for ColbertError {
     }
 }
 
+impl From<ColbertError> for candle_core::Error {
+    fn from(err: ColbertError) -> Self {
+        match err {
+            // If the error is already a Candle error, we can just return it directly.
+            ColbertError::Candle(e) => e,
+            // For any other type of `ColbertError`, we convert it to a string
+            // and wrap it in the generic `candle_core::Error::Msg` variant.
+            _ => candle_core::Error::Msg(err.to_string()),
+        }
+    }
+}
+
+// This implementation allows for converting `ColbertError` into a JavaScript value
+// when compiling for a WASM target. This is essential for exposing Rust errors
+// to JavaScript code.
 #[cfg(feature = "wasm")]
 impl From<ColbertError> for JsValue {
     fn from(err: ColbertError) -> Self {

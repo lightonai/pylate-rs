@@ -4,7 +4,7 @@ use crate::{
     types::Similarities,
     utils::normalize_l2,
 };
-use candle_core::{DType, Device, Tensor};
+use candle_core::{DType, Device, IndexOp, Tensor};
 use candle_nn::{Linear, Module, VarBuilder};
 use candle_transformers::models::bert::{BertModel, Config as BertConfig};
 use tokenizers::Tokenizer;
@@ -59,6 +59,7 @@ pub struct ColBERT {
     pub(crate) mask_token: String,
     pub(crate) query_prefix: String,
     pub(crate) document_prefix: String,
+    pub(crate) do_query_expansion: bool,
     pub(crate) attend_to_expansion_tokens: bool,
     pub(crate) query_length: usize,
     pub(crate) document_length: usize,
@@ -79,6 +80,7 @@ impl ColBERT {
         query_prefix: String,
         document_prefix: String,
         mask_token: String,
+        do_query_expansion: bool,
         attend_to_expansion_tokens: bool,
         query_length: Option<usize>,
         document_length: Option<usize>,
@@ -141,6 +143,13 @@ impl ColBERT {
 
         let linear = candle_nn::linear_no_bias(in_features, out_features, dense_vb.pp("linear"))?;
 
+        // If do_query_expansion is false, attend_to_expansion_tokens should also be false
+        let final_attend_to_expansion_tokens = if !do_query_expansion {
+            false
+        } else {
+            attend_to_expansion_tokens
+        };
+
         Ok(Self {
             model,
             linear,
@@ -149,7 +158,8 @@ impl ColBERT {
             mask_token: mask_token,
             query_prefix,
             document_prefix,
-            attend_to_expansion_tokens,
+            do_query_expansion,
+            attend_to_expansion_tokens: final_attend_to_expansion_tokens,
             query_length: query_length.unwrap_or(32),
             document_length: document_length.unwrap_or(180),
             batch_size: batch_size.unwrap_or(32),
@@ -161,6 +171,74 @@ impl ColBERT {
     #[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
     pub fn from(repo_id: &str) -> ColbertBuilder {
         ColbertBuilder::new(repo_id)
+    }
+
+    /// Processes document embeddings by filtering based on an attention mask,
+    /// normalizing the results, and padding them to a uniform length.
+    ///
+    /// This method iterates through each embedding in the batch,
+    /// removes vectors corresponding to padding tokens (where attention_mask is 0),
+    /// normalizes the remaining vectors, and then pads all sequences with zeros to match
+    /// the longest sequence in the batch.
+    fn filter_normalize_and_pad(
+        &self,
+        embeddings: &Tensor,
+        attention_mask: &Tensor,
+    ) -> Result<Tensor, candle_core::Error> {
+        let (batch_size, _, dim) = embeddings.dims3()?;
+        let mut processed_embeddings: Vec<Tensor> = Vec::with_capacity(batch_size);
+        let mut max_len = 0;
+
+        // Iterate over each item in the batch.
+        for i in 0..batch_size {
+            let single_embedding = embeddings.i(i)?;
+            let single_mask = attention_mask.i(i)?.to_vec1::<u32>()?;
+
+            // Collect embedding vectors where the attention mask is 1.
+            let mut kept_rows = Vec::new();
+            for (j, &mask_val) in single_mask.iter().enumerate() {
+                if mask_val == 1 {
+                    kept_rows.push(single_embedding.i(j)?);
+                }
+            }
+
+            // Normalize the filtered embeddings.
+            let (normalized, current_len) = if kept_rows.is_empty() {
+                // If all tokens are masked, produce a single zero vector. This avoids errors
+                // with empty tensors and provides a valid, though empty, representation.
+                let zeros = Tensor::zeros((1, dim), DType::F32, &self.device)?;
+                (zeros, 1)
+            } else {
+                let filtered = Tensor::stack(&kept_rows, 0)?;
+                let len = filtered.dim(0)?;
+                (normalize_l2(&filtered)?, len)
+            };
+
+            // Track the maximum sequence length for padding later.
+            if current_len > max_len {
+                max_len = current_len;
+            }
+            processed_embeddings.push(normalized);
+        }
+
+        // Pad all processed embeddings to the maximum length found in the batch.
+        let mut padded_tensors = Vec::with_capacity(batch_size);
+        for tensor in processed_embeddings.iter() {
+            let current_len = tensor.dim(0)?;
+            let dim = tensor.dim(1)?; // Should be the same for all
+            let pad_len = max_len - current_len;
+
+            if pad_len > 0 {
+                let padding = Tensor::zeros((pad_len, dim), DType::F32, &self.device)?;
+                let padded = Tensor::cat(&[tensor, &padding], 0)?;
+                padded_tensors.push(padded);
+            } else {
+                padded_tensors.push(tensor.clone());
+            }
+        }
+
+        // Stack the padded tensors into a single batch tensor.
+        Tensor::stack(&padded_tensors, 0)
     }
 
     /// Encodes a batch of sentences (queries or documents) into embeddings.
@@ -185,13 +263,23 @@ impl ColBERT {
 
             let all_embeddings = tokenized_batches
                 .into_par_iter()
-                .map(|(token_ids, attention_mask, token_type_ids)| {
-                    let token_embeddings =
-                        self.model
-                            .forward(&token_ids, &attention_mask, &token_type_ids)?;
-                    let projected_embeddings = self.linear.forward(&token_embeddings)?;
-                    normalize_l2(&projected_embeddings)
-                })
+                .map(
+                    |(token_ids, attention_mask, token_type_ids)| -> Result<Tensor, ColbertError> {
+                        let token_embeddings =
+                            self.model
+                                .forward(&token_ids, &attention_mask, &token_type_ids)?;
+                        let projected_embeddings = self.linear.forward(&token_embeddings)?;
+
+                        if !self.do_query_expansion || !is_query {
+                            // Apply filtering, normalization, and padding.
+                            self.filter_normalize_and_pad(&projected_embeddings, &attention_mask)
+                                .map_err(ColbertError::from)
+                        } else {
+                            // Original behavior: just normalize.
+                            normalize_l2(&projected_embeddings)
+                        }
+                    },
+                )
                 .collect::<Result<Vec<_>, _>>()?;
 
             if all_embeddings.len() == 1 {
@@ -212,9 +300,15 @@ impl ColBERT {
 
             let projected_embeddings = self.linear.forward(&token_embeddings)?;
 
-            let normalized_embeddings = normalize_l2(&projected_embeddings)?;
+            let final_embeddings = if !self.do_query_expansion || !is_query {
+                // Apply filtering, normalization, and padding.
+                self.filter_normalize_and_pad(&projected_embeddings, &attention_mask)?
+            } else {
+                // Original behavior: just normalize.
+                normalize_l2(&projected_embeddings)?
+            };
 
-            all_embeddings.push(normalized_embeddings);
+            all_embeddings.push(final_embeddings);
         }
 
         if all_embeddings.len() == 1 {

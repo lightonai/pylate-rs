@@ -1,6 +1,6 @@
 [package]
 name = "pylate-rs"
-version = "1.0.3"
+version = "1.0.4"
 edition = "2021"
 license = "MIT"
 description = "Rust and WebAssembly library for late interaction models."
@@ -59,7 +59,7 @@ accelerate = [
 
 
 [profile.release]
-opt-level = 2
+opt-level = 3
 lto = true
 
 [[bin]]

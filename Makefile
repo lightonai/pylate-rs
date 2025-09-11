@@ -25,3 +25,8 @@ lint:
 	uv run --extra dev pre-commit run --files python/**/**/**.py
 
 
+run:
+	cargo clean
+	pip uninstall pylate-rs
+	pip install .
+	python test.py

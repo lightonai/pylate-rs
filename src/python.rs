@@ -38,6 +38,7 @@ impl PyColBERT {
     /// * `query_length` - The maximum length for queries.
     /// * `document_length` - The maximum length for documents.
     /// * `batch_size` - The batch size for encoding.
+    /// * `do_query_expansion` - Whether to perform query expansion.
     /// * `attend_to_expansion_tokens` - Whether to attend to expansion tokens.
     /// * `query_prefix` - The prefix to add to queries.
     /// * `document_prefix` - The prefix to add to documents.
@@ -53,6 +54,7 @@ impl PyColBERT {
         query_length=None,
         document_length=None,
         batch_size=None,
+        do_query_expansion=None,
         attend_to_expansion_tokens=None,
         query_prefix=None,
         document_prefix=None,
@@ -64,6 +66,7 @@ impl PyColBERT {
         query_length: Option<usize>,
         document_length: Option<usize>,
         batch_size: Option<usize>,
+        do_query_expansion: Option<bool>,
         attend_to_expansion_tokens: Option<bool>,
         query_prefix: Option<String>,
         document_prefix: Option<String>,
@@ -97,6 +100,9 @@ impl PyColBERT {
         }
         if let Some(bs) = batch_size {
             builder = builder.with_batch_size(bs);
+        }
+        if let Some(do_expansion) = do_query_expansion {
+            builder = builder.with_do_query_expansion(do_expansion);
         }
         if let Some(attend) = attend_to_expansion_tokens {
             builder = builder.with_attend_to_expansion_tokens(attend);

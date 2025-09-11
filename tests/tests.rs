@@ -24,7 +24,7 @@ fn gte_modern_colbert_test() -> Result<()> {
     let score = similarities.data[0][0];
 
     println!("GTE-ModernColBERT-v1 Similarity: {}", score);
-    let expected_score = 29.827637;
+    let expected_score = 9.50805;
     let tolerance = 1e-2;
     assert!(
         (score - expected_score).abs() < tolerance,

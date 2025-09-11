@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "pylate-rs-cuda"
-version = "1.0.3"
+version = "1.0.4"
 description = "Rust and WebAssembly library for late interaction models."
 authors = [
     { name = "Raphael Sourty, LightOn", email = "raphael.sourty@lighton.ai" },
