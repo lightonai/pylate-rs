@@ -1041,7 +1041,9 @@ print(scores)
                 try {
                     await this.retryWithBackoff(() => init(), 5, 200);
                     console.log("✅ WASM module initialized successfully");
-                    this.loadModel(this.state.currentModelName);
+                    // Add a small delay to ensure WASM is fully ready
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    await this.loadModel(this.state.currentModelName);
                 } catch (e) {
                     console.error("Fatal: Failed to initialize WASM module after retries.", e);
                     this.updateAllStatuses(`Error: Could not initialize the application. Please refresh the page.`, 'error');
@@ -1174,45 +1176,56 @@ print(scores)
                     }
                     this.updateAllStatuses(`Initializing ${modelRepo}...`, 'loading');
 
-                    // Try to fetch optional 2_Dense files
-                    let dense2 = null, dense2Config = null;
-                    try {
-                        const dense2Response = await fetch(`https://huggingface.co/${modelRepo}/resolve/main/2_Dense/model.safetensors`);
-                        const dense2ConfigResponse = await fetch(`https://huggingface.co/${modelRepo}/resolve/main/2_Dense/config.json`);
-                        if (dense2Response.ok && dense2ConfigResponse.ok) {
-                            dense2 = new Uint8Array(await dense2Response.arrayBuffer());
-                            dense2Config = new Uint8Array(await dense2ConfigResponse.arrayBuffer());
-                            console.log("✅ Found 2_Dense layer - will use full 2-stage projection");
+                    // Try to fetch all Dense layers (1_Dense, 2_Dense, 3_Dense, ...)
+                    const projectionLayers = [];
+                    for (let i = 1; i <= 10; i++) {
+                        try {
+                            const layerName = `${i}_Dense`;
+                            const weightsResponse = await fetch(`https://huggingface.co/${modelRepo}/resolve/main/${layerName}/model.safetensors`);
+                            const configResponse = await fetch(`https://huggingface.co/${modelRepo}/resolve/main/${layerName}/config.json`);
+
+                            if (weightsResponse.ok && configResponse.ok) {
+                                const weights = new Uint8Array(await weightsResponse.arrayBuffer());
+                                const config = new Uint8Array(await configResponse.arrayBuffer());
+                                projectionLayers.push({
+                                    config: config,
+                                    weights: weights,
+                                    name: layerName
+                                });
+                                console.log(`✅ Found ${layerName} layer`);
+                            } else if (i === 1) {
+                                throw new Error("1_Dense layer is required but not found");
+                            } else {
+                                // Stop at first missing layer
+                                break;
+                            }
+                        } catch (e) {
+                            if (i === 1) {
+                                throw new Error("1_Dense layer is required: " + e.message);
+                            }
+                            break;
                         }
-                    } catch (e) {
-                        console.log("ℹ️ No 2_Dense layer found - using single Dense layer");
                     }
 
                     const [tokenizer, model, config, stConfig, dense, denseConfig, tokensConfig] = modelFiles;
 
                     console.log("Creating ColBERT instance with:", {
                         hasModel: !!model,
-                        hasDense: !!dense,
-                        hasDense2: !!dense2,
+                        projectionLayerCount: projectionLayers.length,
                         hasTokenizer: !!tokenizer,
                         hasConfig: !!config,
                         hasStConfig: !!stConfig,
-                        hasDenseConfig: !!denseConfig,
-                        hasDense2Config: !!dense2Config,
                         hasTokensConfig: !!tokensConfig
                     });
 
-                    // New constructor signature: (weights, dense_weights, dense2_weights, tokenizer, config,
-                    //                             stConfig, dense_config, dense2_config, tokensConfig, batch_size)
+                    // New constructor signature: (weights, projection_layers, tokenizer, config,
+                    //                             sentence_transformers_config, special_tokens_map, batch_size)
                     this.state.colbertModel = new ColBERT(
                         model,
-                        dense,
-                        dense2,           // NEW: optional 2_Dense weights (can be null/undefined)
+                        projectionLayers,  // Array of {config, weights, name} objects
                         tokenizer,
                         config,
                         stConfig,
-                        denseConfig,
-                        dense2Config,     // NEW: optional 2_Dense config (can be null/undefined)
                         tokensConfig,
                         32
                     );

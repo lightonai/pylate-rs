@@ -243,33 +243,29 @@ export class ColBERT {
     }
     /**
      * WASM-compatible constructor.
+     *
+     * # Arguments
+     * * `projection_layers` - JsValue containing array of {config: Uint8Array, weights: Uint8Array, name: string}
      * @param {Uint8Array} weights
-     * @param {Uint8Array} dense_weights
-     * @param {any} dense2_weights
+     * @param {any} projection_layers
      * @param {Uint8Array} tokenizer
      * @param {Uint8Array} config
      * @param {Uint8Array} sentence_transformers_config
-     * @param {Uint8Array} dense_config
-     * @param {any} dense2_config
      * @param {Uint8Array} special_tokens_map
      * @param {number | null} [batch_size]
      */
-    constructor(weights, dense_weights, dense2_weights, tokenizer, config, sentence_transformers_config, dense_config, dense2_config, special_tokens_map, batch_size) {
+    constructor(weights, projection_layers, tokenizer, config, sentence_transformers_config, special_tokens_map, batch_size) {
         const ptr0 = passArray8ToWasm0(weights, wasm.__wbindgen_malloc);
         const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passArray8ToWasm0(dense_weights, wasm.__wbindgen_malloc);
+        const ptr1 = passArray8ToWasm0(tokenizer, wasm.__wbindgen_malloc);
         const len1 = WASM_VECTOR_LEN;
-        const ptr2 = passArray8ToWasm0(tokenizer, wasm.__wbindgen_malloc);
+        const ptr2 = passArray8ToWasm0(config, wasm.__wbindgen_malloc);
         const len2 = WASM_VECTOR_LEN;
-        const ptr3 = passArray8ToWasm0(config, wasm.__wbindgen_malloc);
+        const ptr3 = passArray8ToWasm0(sentence_transformers_config, wasm.__wbindgen_malloc);
         const len3 = WASM_VECTOR_LEN;
-        const ptr4 = passArray8ToWasm0(sentence_transformers_config, wasm.__wbindgen_malloc);
+        const ptr4 = passArray8ToWasm0(special_tokens_map, wasm.__wbindgen_malloc);
         const len4 = WASM_VECTOR_LEN;
-        const ptr5 = passArray8ToWasm0(dense_config, wasm.__wbindgen_malloc);
-        const len5 = WASM_VECTOR_LEN;
-        const ptr6 = passArray8ToWasm0(special_tokens_map, wasm.__wbindgen_malloc);
-        const len6 = WASM_VECTOR_LEN;
-        const ret = wasm.colbert_from_bytes(ptr0, len0, ptr1, len1, dense2_weights, ptr2, len2, ptr3, len3, ptr4, len4, ptr5, len5, dense2_config, ptr6, len6, isLikeNone(batch_size) ? 0x100000001 : (batch_size) >>> 0);
+        const ret = wasm.colbert_from_bytes(ptr0, len0, projection_layers, ptr1, len1, ptr2, len2, ptr3, len3, ptr4, len4, isLikeNone(batch_size) ? 0x100000001 : (batch_size) >>> 0);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
         }
@@ -422,6 +418,10 @@ function __wbg_get_imports() {
             wasm.__wbindgen_free(deferred0_0, deferred0_1, 1);
         }
     };
+    imports.wbg.__wbg_from_88bc52ce20ba6318 = function(arg0) {
+        const ret = Array.from(arg0);
+        return ret;
+    };
     imports.wbg.__wbg_getRandomValues_1c61fac11405ffdc = function() { return handleError(function (arg0, arg1) {
         globalThis.crypto.getRandomValues(getArrayU8FromWasm0(arg0, arg1));
     }, arguments) };
@@ -535,10 +535,6 @@ function __wbg_get_imports() {
     };
     imports.wbg.__wbg_wbindgenisfunction_8cee7dce3725ae74 = function(arg0) {
         const ret = typeof(arg0) === 'function';
-        return ret;
-    };
-    imports.wbg.__wbg_wbindgenisnull_f3037694abe4d97a = function(arg0) {
-        const ret = arg0 === null;
         return ret;
     };
     imports.wbg.__wbg_wbindgenisobject_307a53c6bd97fbf8 = function(arg0) {

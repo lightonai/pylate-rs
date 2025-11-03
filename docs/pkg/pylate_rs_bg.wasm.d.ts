@@ -2,7 +2,7 @@
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
 export const __wbg_colbert_free: (a: number, b: number) => void;
-export const colbert_from_bytes: (a: number, b: number, c: number, d: number, e: any, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: any, o: number, p: number, q: number) => [number, number, number];
+export const colbert_from_bytes: (a: number, b: number, c: any, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number) => [number, number, number];
 export const colbert_encode: (a: number, b: any, c: number) => [number, number, number, number];
 export const colbert_similarity: (a: number, b: any) => [number, number, number, number];
 export const colbert_raw_similarity_matrix: (a: number, b: any) => [number, number, number, number];

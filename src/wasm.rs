@@ -2,7 +2,7 @@ use crate::{
     error::ColbertError,
     model::ColBERT,
     pooling::hierarchical_pooling,
-    types::{EncodeInput, EncodeOutput, RawSimilarityOutput, SimilarityInput, Similarities},
+    types::{EncodeInput, EncodeOutput, RawSimilarityOutput, Similarities, SimilarityInput},
 };
 use candle_core::{Device, IndexOp, Tensor};
 use wasm_bindgen::prelude::*;
@@ -10,40 +10,53 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
 impl ColBERT {
     /// WASM-compatible constructor.
+    ///
+    /// # Arguments
+    /// * `projection_layers` - JsValue containing array of {config: Uint8Array, weights: Uint8Array, name: string}
     #[wasm_bindgen(constructor)]
     pub fn from_bytes(
         weights: Vec<u8>,
-        dense_weights: Vec<u8>,
-        dense2_weights: JsValue,
+        projection_layers: JsValue,
         tokenizer: Vec<u8>,
         config: Vec<u8>,
         sentence_transformers_config: Vec<u8>,
-        dense_config: Vec<u8>,
-        dense2_config: JsValue,
         special_tokens_map: Vec<u8>,
         batch_size: Option<usize>,
     ) -> Result<ColBERT, JsValue> {
         console_error_panic_hook::set_once();
 
-        // Convert optional 2_Dense weights from JsValue
-        let dense2_weights_opt: Option<Vec<u8>> =
-            if dense2_weights.is_null() || dense2_weights.is_undefined() {
-                None
-            } else {
-                Some(serde_wasm_bindgen::from_value(dense2_weights).map_err(|e| {
-                    JsValue::from_str(&format!("Failed to parse dense2_weights: {}", e))
-                })?)
-            };
+        // Parse projection layers from JsValue
+        // Expected format: [{config: Uint8Array, weights: Uint8Array, name: string}, ...]
+        use js_sys::{Array, Object, Reflect, Uint8Array};
 
-        // Convert optional 2_Dense config from JsValue
-        let dense2_config_opt: Option<Vec<u8>> =
-            if dense2_config.is_null() || dense2_config.is_undefined() {
-                None
-            } else {
-                Some(serde_wasm_bindgen::from_value(dense2_config).map_err(|e| {
-                    JsValue::from_str(&format!("Failed to parse dense2_config: {}", e))
-                })?)
-            };
+        let layers_array = Array::from(&projection_layers);
+        let mut projection_layers_data = Vec::new();
+
+        for i in 0..layers_array.length() {
+            let layer = layers_array.get(i);
+            let layer_obj = Object::from(layer);
+
+            // Extract config as Uint8Array
+            let config_js = Reflect::get(&layer_obj, &JsValue::from_str("config"))
+                .map_err(|e| JsValue::from_str(&format!("Failed to get config: {:?}", e)))?;
+            let config_array = Uint8Array::from(config_js);
+            let config_bytes = config_array.to_vec();
+
+            // Extract weights as Uint8Array
+            let weights_js = Reflect::get(&layer_obj, &JsValue::from_str("weights"))
+                .map_err(|e| JsValue::from_str(&format!("Failed to get weights: {:?}", e)))?;
+            let weights_array = Uint8Array::from(weights_js);
+            let weights_bytes = weights_array.to_vec();
+
+            // Extract name as string
+            let name_js = Reflect::get(&layer_obj, &JsValue::from_str("name"))
+                .map_err(|e| JsValue::from_str(&format!("Failed to get name: {:?}", e)))?;
+            let layer_name = name_js
+                .as_string()
+                .ok_or_else(|| JsValue::from_str("Layer name must be a string"))?;
+
+            projection_layers_data.push((config_bytes, weights_bytes, layer_name));
+        }
 
         let st_config: serde_json::Value =
             serde_json::from_slice(&sentence_transformers_config).map_err(ColbertError::from)?;
@@ -75,12 +88,9 @@ impl ColBERT {
 
         Self::new(
             weights,
-            dense_weights,
-            dense2_weights_opt,
+            projection_layers_data,
             tokenizer,
             config,
-            dense_config,
-            dense2_config_opt,
             query_prefix,
             document_prefix,
             mask_token,

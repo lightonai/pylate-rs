@@ -16,8 +16,11 @@ export class ColBERT {
   [Symbol.dispose](): void;
   /**
    * WASM-compatible constructor.
+   *
+   * # Arguments
+   * * `projection_layers` - JsValue containing array of {config: Uint8Array, weights: Uint8Array, name: string}
    */
-  constructor(weights: Uint8Array, dense_weights: Uint8Array, dense2_weights: any, tokenizer: Uint8Array, config: Uint8Array, sentence_transformers_config: Uint8Array, dense_config: Uint8Array, dense2_config: any, special_tokens_map: Uint8Array, batch_size?: number | null);
+  constructor(weights: Uint8Array, projection_layers: any, tokenizer: Uint8Array, config: Uint8Array, sentence_transformers_config: Uint8Array, special_tokens_map: Uint8Array, batch_size?: number | null);
   /**
    * WASM-compatible version of the `encode` method.
    */
@@ -37,7 +40,7 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 export interface InitOutput {
   readonly memory: WebAssembly.Memory;
   readonly __wbg_colbert_free: (a: number, b: number) => void;
-  readonly colbert_from_bytes: (a: number, b: number, c: number, d: number, e: any, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: any, o: number, p: number, q: number) => [number, number, number];
+  readonly colbert_from_bytes: (a: number, b: number, c: any, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number) => [number, number, number];
   readonly colbert_encode: (a: number, b: any, c: number) => [number, number, number, number];
   readonly colbert_similarity: (a: number, b: any) => [number, number, number, number];
   readonly colbert_raw_similarity_matrix: (a: number, b: any) => [number, number, number, number];
