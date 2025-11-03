@@ -39,12 +39,12 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 
 export interface InitOutput {
   readonly memory: WebAssembly.Memory;
-  readonly __wbg_colbert_free: (a: number, b: number) => void;
   readonly colbert_from_bytes: (a: number, b: number, c: any, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number) => [number, number, number];
   readonly colbert_encode: (a: number, b: any, c: number) => [number, number, number, number];
   readonly colbert_similarity: (a: number, b: any) => [number, number, number, number];
   readonly colbert_raw_similarity_matrix: (a: number, b: any) => [number, number, number, number];
   readonly hierarchical_pooling: (a: any) => [number, number, number, number];
+  readonly __wbg_colbert_free: (a: number, b: number) => void;
   readonly __wbindgen_malloc: (a: number, b: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
   readonly __wbindgen_exn_store: (a: number) => void;

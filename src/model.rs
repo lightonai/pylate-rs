@@ -84,7 +84,7 @@ impl ProjectionLayer {
         // Parse activation function from config, default to Identity if not specified
         let activation = config["activation_function"]
             .as_str()
-            .map(|s| Activation::from_pytorch_name(s))
+            .map(Activation::from_pytorch_name)
             .transpose()?
             .unwrap_or(Activation::Identity);
 
@@ -195,7 +195,7 @@ impl ColBERT {
         let config_value: serde_json::Value = serde_json::from_slice(&config_bytes)?;
         let architectures = config_value["architectures"]
             .as_array()
-            .and_then(|arr| arr.get(0))
+            .and_then(|arr| arr.first())
             .and_then(|v| v.as_str())
             .ok_or_else(|| {
                 ColbertError::Operation("Missing or invalid 'architectures' in config.json".into())
@@ -274,7 +274,7 @@ impl ColBERT {
             projection_layers,
             tokenizer,
             mask_token_id,
-            mask_token: mask_token,
+            mask_token,
             query_prefix,
             document_prefix,
             do_query_expansion,
