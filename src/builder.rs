@@ -116,15 +116,16 @@ impl TryFrom<ColbertBuilder> for ColBERT {
         ) = if local_path.is_dir() {
             let mut layer_paths = Vec::new();
 
-            // Scan for numbered Dense layers (1_Dense, 2_Dense, ...)
-            for i in 1..=10 {
-                // Support up to 10 layers
+            // Scan for numbered Dense layers (1_Dense, 2_Dense, ...) until we don't find one
+            let mut i = 1;
+            loop {
                 let layer_dir = format!("{}_Dense", i);
                 let config_path = local_path.join(&layer_dir).join("config.json");
                 let weights_path = local_path.join(&layer_dir).join("model.safetensors");
 
                 if config_path.exists() && weights_path.exists() {
                     layer_paths.push((config_path, weights_path, layer_dir));
+                    i += 1;
                 } else if i == 1 {
                     // 1_Dense is required
                     return Err(ColbertError::Io(std::io::Error::new(
@@ -155,9 +156,9 @@ impl TryFrom<ColbertBuilder> for ColBERT {
 
             let mut layer_paths = Vec::new();
 
-            // Scan for numbered Dense layers from HuggingFace Hub
-            for i in 1..=10 {
-                // Support up to 10 layers
+            // Scan for numbered Dense layers from HuggingFace Hub until we don't find one
+            let mut i = 1;
+            loop {
                 let layer_dir = format!("{}_Dense", i);
                 let config_file = format!("{}/config.json", layer_dir);
                 let weights_file = format!("{}/model.safetensors", layer_dir);
@@ -165,6 +166,7 @@ impl TryFrom<ColbertBuilder> for ColBERT {
                 match (repo.get(&config_file), repo.get(&weights_file)) {
                     (Ok(config_path), Ok(weights_path)) => {
                         layer_paths.push((config_path, weights_path, layer_dir));
+                        i += 1;
                     },
                     _ => {
                         if i == 1 {

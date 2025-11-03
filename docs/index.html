@@ -1176,9 +1176,10 @@ print(scores)
                     }
                     this.updateAllStatuses(`Initializing ${modelRepo}...`, 'loading');
 
-                    // Try to fetch all Dense layers (1_Dense, 2_Dense, 3_Dense, ...)
+                    // Try to fetch all Dense layers (1_Dense, 2_Dense, 3_Dense, ...) until we don't find one
                     const projectionLayers = [];
-                    for (let i = 1; i <= 10; i++) {
+                    let i = 1;
+                    while (true) {
                         try {
                             const layerName = `${i}_Dense`;
                             const weightsResponse = await fetch(`https://huggingface.co/${modelRepo}/resolve/main/${layerName}/model.safetensors`);
@@ -1193,6 +1194,7 @@ print(scores)
                                     name: layerName
                                 });
                                 console.log(`✅ Found ${layerName} layer`);
+                                i++;
                             } else if (i === 1) {
                                 throw new Error("1_Dense layer is required but not found");
                             } else {
