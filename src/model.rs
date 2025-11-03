@@ -9,6 +9,107 @@ use candle_nn::{Linear, Module, VarBuilder};
 use candle_transformers::models::bert::{BertModel, Config as BertConfig};
 use tokenizers::Tokenizer;
 
+/// Activation functions that can be applied after linear layers.
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum Activation {
+    Identity,
+    Relu,
+    Gelu,
+    GeluErf,
+    Tanh,
+    Silu,
+}
+
+impl Activation {
+    /// Parse activation function from PyTorch class name
+    fn from_pytorch_name(name: &str) -> Result<Self, ColbertError> {
+        match name {
+            "torch.nn.modules.linear.Identity" => Ok(Activation::Identity),
+            "torch.nn.modules.activation.ReLU" => Ok(Activation::Relu),
+            "torch.nn.modules.activation.GELU" => Ok(Activation::GeluErf),
+            "torch.nn.modules.activation.Tanh" => Ok(Activation::Tanh),
+            "torch.nn.modules.activation.SiLU" => Ok(Activation::Silu),
+            _ => Err(ColbertError::Operation(format!(
+                "Unsupported activation function: {}",
+                name
+            ))),
+        }
+    }
+
+    /// Apply the activation function to a tensor
+    fn apply(&self, tensor: &Tensor) -> Result<Tensor, candle_core::Error> {
+        match self {
+            Activation::Identity => Ok(tensor.clone()),
+            Activation::Relu => tensor.relu(),
+            Activation::Gelu => tensor.gelu(),
+            Activation::GeluErf => tensor.gelu_erf(),
+            Activation::Tanh => tensor.tanh(),
+            Activation::Silu => tensor.silu(),
+        }
+    }
+}
+
+/// A single projection layer with its associated activation function.
+#[derive(Clone)]
+pub(crate) struct ProjectionLayer {
+    linear: Linear,
+    activation: Activation,
+}
+
+impl ProjectionLayer {
+    /// Creates a new projection layer from config and weights
+    fn new(
+        config_bytes: &[u8],
+        weights_bytes: Vec<u8>,
+        layer_name: &str,
+        device: &Device,
+    ) -> Result<Self, ColbertError> {
+        let config: serde_json::Value = serde_json::from_slice(config_bytes)?;
+        let vb = VarBuilder::from_buffered_safetensors(weights_bytes, DType::F32, device)?;
+
+        let in_features = config["in_features"]
+            .as_u64()
+            .map(|v| v as usize)
+            .ok_or_else(|| {
+                ColbertError::Operation(format!("Missing 'in_features' in {} config", layer_name))
+            })?;
+
+        let out_features = config["out_features"]
+            .as_u64()
+            .map(|v| v as usize)
+            .ok_or_else(|| {
+                ColbertError::Operation(format!("Missing 'out_features' in {} config", layer_name))
+            })?;
+
+        // Parse activation function from config, default to Identity if not specified
+        let activation = config["activation_function"]
+            .as_str()
+            .map(Activation::from_pytorch_name)
+            .transpose()?
+            .unwrap_or(Activation::Identity);
+
+        let linear = candle_nn::linear_no_bias(in_features, out_features, vb.pp("linear"))?;
+
+        Ok(Self { linear, activation })
+    }
+
+    /// Apply the projection layer (linear + activation) to a tensor
+    fn forward(&self, tensor: &Tensor) -> Result<Tensor, candle_core::Error> {
+        let output = self.linear.forward(tensor)?;
+        self.activation.apply(&output)
+    }
+
+    /// Get output dimension of this layer
+    fn out_features(&self) -> usize {
+        self.linear.weight().dims()[0]
+    }
+
+    /// Get input dimension of this layer
+    fn in_features(&self) -> usize {
+        self.linear.weight().dims()[1]
+    }
+}
+
 #[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
 use rayon::prelude::*;
 
@@ -53,7 +154,7 @@ impl BaseModel {
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
 pub struct ColBERT {
     pub(crate) model: BaseModel,
-    pub(crate) linear: Linear,
+    pub(crate) projection_layers: Vec<ProjectionLayer>,
     pub(crate) tokenizer: Tokenizer,
     pub(crate) mask_token_id: u32,
     pub(crate) mask_token: String,
@@ -71,12 +172,14 @@ pub struct ColBERT {
 
 impl ColBERT {
     /// Creates a new instance of the `ColBERT` model from byte buffers.
+    ///
+    /// # Arguments
+    /// * `projection_layers_data` - Vec of (config_bytes, weights_bytes, layer_name) tuples for each Dense layer
     pub fn new(
         weights: Vec<u8>,
-        dense_weights: Vec<u8>,
+        projection_layers_data: Vec<(Vec<u8>, Vec<u8>, String)>,
         tokenizer_bytes: Vec<u8>,
         config_bytes: Vec<u8>,
-        dense_config_bytes: Vec<u8>,
         query_prefix: String,
         document_prefix: String,
         mask_token: String,
@@ -92,7 +195,7 @@ impl ColBERT {
         let config_value: serde_json::Value = serde_json::from_slice(&config_bytes)?;
         let architectures = config_value["architectures"]
             .as_array()
-            .and_then(|arr| arr.get(0))
+            .and_then(|arr| arr.first())
             .and_then(|v| v.as_str())
             .ok_or_else(|| {
                 ColbertError::Operation("Missing or invalid 'architectures' in config.json".into())
@@ -117,7 +220,6 @@ impl ColBERT {
             },
         };
 
-        let dense_config: serde_json::Value = serde_json::from_slice(&dense_config_bytes)?;
         let tokenizer = Tokenizer::from_bytes(&tokenizer_bytes)?;
 
         let mask_token_id = tokenizer.token_to_id(mask_token.as_str()).ok_or_else(|| {
@@ -127,21 +229,38 @@ impl ColBERT {
             ))
         })?;
 
-        let dense_vb = VarBuilder::from_buffered_safetensors(dense_weights, DType::F32, device)?;
-        let in_features = dense_config["in_features"]
-            .as_u64()
-            .map(|v| v as usize)
-            .ok_or_else(|| {
-                ColbertError::Operation("Missing 'in_features' in dense config".into())
-            })?;
-        let out_features = dense_config["out_features"]
-            .as_u64()
-            .map(|v| v as usize)
-            .ok_or_else(|| {
-                ColbertError::Operation("Missing 'out_features' in dense config".into())
-            })?;
+        // Validate that we have at least one projection layer
+        if projection_layers_data.is_empty() {
+            return Err(ColbertError::Operation(
+                "At least one projection layer is required".into(),
+            ));
+        }
 
-        let linear = candle_nn::linear_no_bias(in_features, out_features, dense_vb.pp("linear"))?;
+        // Build projection layers and validate dimensions
+        let mut projection_layers = Vec::with_capacity(projection_layers_data.len());
+        let mut prev_out_features: Option<usize> = None;
+
+        for (i, (config_bytes, weights_bytes, layer_name)) in
+            projection_layers_data.into_iter().enumerate()
+        {
+            let layer = ProjectionLayer::new(&config_bytes, weights_bytes, &layer_name, device)?;
+
+            // Validate dimension compatibility with previous layer
+            if let Some(prev_out) = prev_out_features {
+                if prev_out != layer.in_features() {
+                    return Err(ColbertError::Operation(format!(
+                        "Dimension mismatch between layer {} and {}: output {} != input {}",
+                        i - 1,
+                        layer_name,
+                        prev_out,
+                        layer.in_features()
+                    )));
+                }
+            }
+
+            prev_out_features = Some(layer.out_features());
+            projection_layers.push(layer);
+        }
 
         // If do_query_expansion is false, attend_to_expansion_tokens should also be false
         let final_attend_to_expansion_tokens = if !do_query_expansion {
@@ -152,10 +271,10 @@ impl ColBERT {
 
         Ok(Self {
             model,
-            linear,
+            projection_layers,
             tokenizer,
             mask_token_id,
-            mask_token: mask_token,
+            mask_token,
             query_prefix,
             document_prefix,
             do_query_expansion,
@@ -268,7 +387,12 @@ impl ColBERT {
                         let token_embeddings =
                             self.model
                                 .forward(&token_ids, &attention_mask, &token_type_ids)?;
-                        let projected_embeddings = self.linear.forward(&token_embeddings)?;
+
+                        // Apply all projection layers sequentially
+                        let mut projected_embeddings = token_embeddings;
+                        for layer in &self.projection_layers {
+                            projected_embeddings = layer.forward(&projected_embeddings)?;
+                        }
 
                         if !self.do_query_expansion || !is_query {
                             // Apply filtering, normalization, and padding.
@@ -298,7 +422,11 @@ impl ColBERT {
                 self.model
                     .forward(&token_ids, &attention_mask, &token_type_ids)?;
 
-            let projected_embeddings = self.linear.forward(&token_embeddings)?;
+            // Apply all projection layers sequentially
+            let mut projected_embeddings = token_embeddings;
+            for layer in &self.projection_layers {
+                projected_embeddings = layer.forward(&projected_embeddings)?;
+            }
 
             let final_embeddings = if !self.do_query_expansion || !is_query {
                 // Apply filtering, normalization, and padding.

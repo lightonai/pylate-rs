@@ -3,7 +3,7 @@
 /**
  * WASM-compatible version of the `hierarchical_pooling` function.
  */
-export function hierarchical_pooling(input: any): any;
+export function hierarchical_pooling(input: any): string;
 /**
  * The main ColBERT model structure.
  *
@@ -13,33 +13,37 @@ export function hierarchical_pooling(input: any): any;
  */
 export class ColBERT {
   free(): void;
+  [Symbol.dispose](): void;
   /**
    * WASM-compatible constructor.
+   *
+   * # Arguments
+   * * `projection_layers` - JsValue containing array of {config: Uint8Array, weights: Uint8Array, name: string}
    */
-  constructor(weights: Uint8Array, dense_weights: Uint8Array, tokenizer: Uint8Array, config: Uint8Array, sentence_transformers_config: Uint8Array, dense_config: Uint8Array, special_tokens_map: Uint8Array, batch_size?: number | null);
+  constructor(weights: Uint8Array, projection_layers: any, tokenizer: Uint8Array, config: Uint8Array, sentence_transformers_config: Uint8Array, special_tokens_map: Uint8Array, batch_size?: number | null);
   /**
    * WASM-compatible version of the `encode` method.
    */
-  encode(input: any, is_query: boolean): any;
+  encode(input: any, is_query: boolean): string;
   /**
    * WASM-compatible version of the `similarity` method.
    */
-  similarity(input: any): any;
+  similarity(input: any): string;
   /**
    * WASM-compatible method to get the raw similarity matrix and tokens.
    */
-  raw_similarity_matrix(input: any): any;
+  raw_similarity_matrix(input: any): string;
 }
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
   readonly memory: WebAssembly.Memory;
-  readonly colbert_from_bytes: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number) => [number, number, number];
-  readonly colbert_encode: (a: number, b: any, c: number) => [number, number, number];
-  readonly colbert_similarity: (a: number, b: any) => [number, number, number];
-  readonly colbert_raw_similarity_matrix: (a: number, b: any) => [number, number, number];
-  readonly hierarchical_pooling: (a: any) => [number, number, number];
+  readonly colbert_from_bytes: (a: number, b: number, c: any, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number) => [number, number, number];
+  readonly colbert_encode: (a: number, b: any, c: number) => [number, number, number, number];
+  readonly colbert_similarity: (a: number, b: any) => [number, number, number, number];
+  readonly colbert_raw_similarity_matrix: (a: number, b: any) => [number, number, number, number];
+  readonly hierarchical_pooling: (a: any) => [number, number, number, number];
   readonly __wbg_colbert_free: (a: number, b: number) => void;
   readonly __wbindgen_malloc: (a: number, b: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;

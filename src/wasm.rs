@@ -2,7 +2,7 @@ use crate::{
     error::ColbertError,
     model::ColBERT,
     pooling::hierarchical_pooling,
-    types::{EncodeInput, EncodeOutput, RawSimilarityOutput, SimilarityInput},
+    types::{EncodeInput, EncodeOutput, RawSimilarityOutput, Similarities, SimilarityInput},
 };
 use candle_core::{Device, IndexOp, Tensor};
 use wasm_bindgen::prelude::*;
@@ -10,18 +10,53 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
 impl ColBERT {
     /// WASM-compatible constructor.
+    ///
+    /// # Arguments
+    /// * `projection_layers` - JsValue containing array of {config: Uint8Array, weights: Uint8Array, name: string}
     #[wasm_bindgen(constructor)]
     pub fn from_bytes(
         weights: Vec<u8>,
-        dense_weights: Vec<u8>,
+        projection_layers: JsValue,
         tokenizer: Vec<u8>,
         config: Vec<u8>,
         sentence_transformers_config: Vec<u8>,
-        dense_config: Vec<u8>,
         special_tokens_map: Vec<u8>,
         batch_size: Option<usize>,
     ) -> Result<ColBERT, JsValue> {
         console_error_panic_hook::set_once();
+
+        // Parse projection layers from JsValue
+        // Expected format: [{config: Uint8Array, weights: Uint8Array, name: string}, ...]
+        use js_sys::{Array, Object, Reflect, Uint8Array};
+
+        let layers_array = Array::from(&projection_layers);
+        let mut projection_layers_data = Vec::new();
+
+        for i in 0..layers_array.length() {
+            let layer = layers_array.get(i);
+            let layer_obj = Object::from(layer);
+
+            // Extract config as Uint8Array
+            let config_js = Reflect::get(&layer_obj, &JsValue::from_str("config"))
+                .map_err(|e| JsValue::from_str(&format!("Failed to get config: {:?}", e)))?;
+            let config_array = Uint8Array::from(config_js);
+            let config_bytes = config_array.to_vec();
+
+            // Extract weights as Uint8Array
+            let weights_js = Reflect::get(&layer_obj, &JsValue::from_str("weights"))
+                .map_err(|e| JsValue::from_str(&format!("Failed to get weights: {:?}", e)))?;
+            let weights_array = Uint8Array::from(weights_js);
+            let weights_bytes = weights_array.to_vec();
+
+            // Extract name as string
+            let name_js = Reflect::get(&layer_obj, &JsValue::from_str("name"))
+                .map_err(|e| JsValue::from_str(&format!("Failed to get name: {:?}", e)))?;
+            let layer_name = name_js
+                .as_string()
+                .ok_or_else(|| JsValue::from_str("Layer name must be a string"))?;
+
+            projection_layers_data.push((config_bytes, weights_bytes, layer_name));
+        }
 
         let st_config: serde_json::Value =
             serde_json::from_slice(&sentence_transformers_config).map_err(ColbertError::from)?;
@@ -37,9 +72,7 @@ impl ColBERT {
             .as_str()
             .unwrap_or("[D]")
             .to_string();
-        let do_query_expansion = st_config["do_query_expansion"]
-            .as_bool()
-            .unwrap_or(true);
+        let do_query_expansion = st_config["do_query_expansion"].as_bool().unwrap_or(true);
         let attend_to_expansion_tokens = st_config["attend_to_expansion_tokens"]
             .as_bool()
             .unwrap_or(false);
@@ -55,10 +88,9 @@ impl ColBERT {
 
         Self::new(
             weights,
-            dense_weights,
+            projection_layers_data,
             tokenizer,
             config,
-            dense_config,
             query_prefix,
             document_prefix,
             mask_token,
@@ -74,7 +106,7 @@ impl ColBERT {
 
     /// WASM-compatible version of the `encode` method.
     #[wasm_bindgen(js_name = "encode")]
-    pub fn encode_wasm(&mut self, input: JsValue, is_query: bool) -> Result<JsValue, JsValue> {
+    pub fn encode_wasm(&mut self, input: JsValue, is_query: bool) -> Result<String, JsValue> {
         let params: EncodeInput = serde_wasm_bindgen::from_value(input)?;
         // Override model's batch_size if provided in the input
         if let Some(batch_size) = params.batch_size {
@@ -87,22 +119,27 @@ impl ColBERT {
         let result = EncodeOutput {
             embeddings: embeddings_data,
         };
-        serde_wasm_bindgen::to_value(&result).map_err(Into::into)
+        // Return as JSON string to avoid serde-wasm-bindgen issues
+        serde_json::to_string(&result)
+            .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))
     }
 
     /// WASM-compatible version of the `similarity` method.
     #[wasm_bindgen(js_name = "similarity")]
-    pub fn similarity_wasm(&mut self, input: JsValue) -> Result<JsValue, JsValue> {
+    pub fn similarity_wasm(&mut self, input: JsValue) -> Result<String, JsValue> {
         let params: SimilarityInput = serde_wasm_bindgen::from_value(input)?;
         let queries_embeddings = self.encode(&params.queries, true)?;
         let documents_embeddings = self.encode(&params.documents, false)?;
         let result = self.similarity(&queries_embeddings, &documents_embeddings)?;
-        serde_wasm_bindgen::to_value(&result).map_err(Into::into)
+
+        // Return as JSON string to avoid serde-wasm-bindgen issues
+        serde_json::to_string(&result)
+            .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))
     }
 
     /// WASM-compatible method to get the raw similarity matrix and tokens.
     #[wasm_bindgen(js_name = "raw_similarity_matrix")]
-    pub fn raw_similarity_matrix_wasm(&mut self, input: JsValue) -> Result<JsValue, JsValue> {
+    pub fn raw_similarity_matrix_wasm(&mut self, input: JsValue) -> Result<String, JsValue> {
         let params: SimilarityInput = serde_wasm_bindgen::from_value(input)?;
 
         let (query_ids_tensor, _, _) = self.tokenize(&params.queries, true)?;
@@ -151,7 +188,9 @@ impl ColBERT {
             document_tokens,
         };
 
-        serde_wasm_bindgen::to_value(&result).map_err(Into::into)
+        // Return as JSON string to avoid serde-wasm-bindgen issues
+        serde_json::to_string(&result)
+            .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))
     }
 }
 
@@ -165,13 +204,14 @@ struct PoolingInput {
 /// WASM-compatible version of the `hierarchical_pooling` function.
 #[cfg(feature = "wasm")]
 #[wasm_bindgen(js_name = hierarchical_pooling)]
-pub fn hierarchical_pooling_wasm(input: JsValue) -> Result<JsValue, JsValue> {
+pub fn hierarchical_pooling_wasm(input: JsValue) -> Result<String, JsValue> {
     console_error_panic_hook::set_once();
     let params: PoolingInput = serde_wasm_bindgen::from_value(input)?;
 
     if params.embeddings.is_empty() {
         let result = EncodeOutput { embeddings: vec![] };
-        return serde_wasm_bindgen::to_value(&result).map_err(Into::into);
+        return serde_json::to_string(&result)
+            .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)));
     }
 
     let batch_size = params.embeddings.len();
@@ -181,7 +221,8 @@ pub fn hierarchical_pooling_wasm(input: JsValue) -> Result<JsValue, JsValue> {
         let result = EncodeOutput {
             embeddings: params.embeddings,
         };
-        return serde_wasm_bindgen::to_value(&result).map_err(Into::into);
+        return serde_json::to_string(&result)
+            .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)));
     }
     let embedding_dim = params.embeddings[0][0].len();
 
@@ -202,5 +243,7 @@ pub fn hierarchical_pooling_wasm(input: JsValue) -> Result<JsValue, JsValue> {
         embeddings: embeddings_data,
     };
 
-    serde_wasm_bindgen::to_value(&result).map_err(Into::into)
+    // Return as JSON string to avoid serde-wasm-bindgen issues
+    serde_json::to_string(&result)
+        .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))
 }

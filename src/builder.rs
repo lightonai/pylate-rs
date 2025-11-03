@@ -104,22 +104,46 @@ impl TryFrom<ColbertBuilder> for ColBERT {
         let device = builder.device.unwrap_or(Device::Cpu);
 
         let local_path = PathBuf::from(&builder.repo_id);
+
+        // Auto-detect all *_Dense directories (1_Dense, 2_Dense, 3_Dense, etc.)
         let (
             tokenizer_path,
             weights_path,
             config_path,
             st_config_path,
-            dense_config_path,
-            dense_weights_path,
+            projection_layer_paths,
             special_tokens_map_path,
         ) = if local_path.is_dir() {
+            let mut layer_paths = Vec::new();
+
+            // Scan for numbered Dense layers (1_Dense, 2_Dense, ...) until we don't find one
+            let mut i = 1;
+            loop {
+                let layer_dir = format!("{}_Dense", i);
+                let config_path = local_path.join(&layer_dir).join("config.json");
+                let weights_path = local_path.join(&layer_dir).join("model.safetensors");
+
+                if config_path.exists() && weights_path.exists() {
+                    layer_paths.push((config_path, weights_path, layer_dir));
+                    i += 1;
+                } else if i == 1 {
+                    // 1_Dense is required
+                    return Err(ColbertError::Io(std::io::Error::new(
+                        std::io::ErrorKind::NotFound,
+                        "1_Dense layer is required but not found",
+                    )));
+                } else {
+                    // Stop scanning after first missing layer
+                    break;
+                }
+            }
+
             (
                 local_path.join("tokenizer.json"),
                 local_path.join("model.safetensors"),
                 local_path.join("config.json"),
                 local_path.join("config_sentence_transformers.json"),
-                local_path.join("1_Dense/config.json"),
-                local_path.join("1_Dense/model.safetensors"),
+                layer_paths,
                 local_path.join("special_tokens_map.json"),
             )
         } else {
@@ -129,13 +153,39 @@ impl TryFrom<ColbertBuilder> for ColBERT {
                 RepoType::Model,
                 "main".to_string(),
             ));
+
+            let mut layer_paths = Vec::new();
+
+            // Scan for numbered Dense layers from HuggingFace Hub until we don't find one
+            let mut i = 1;
+            loop {
+                let layer_dir = format!("{}_Dense", i);
+                let config_file = format!("{}/config.json", layer_dir);
+                let weights_file = format!("{}/model.safetensors", layer_dir);
+
+                match (repo.get(&config_file), repo.get(&weights_file)) {
+                    (Ok(config_path), Ok(weights_path)) => {
+                        layer_paths.push((config_path, weights_path, layer_dir));
+                        i += 1;
+                    },
+                    _ => {
+                        if i == 1 {
+                            return Err(ColbertError::Operation(
+                                "1_Dense layer is required but not found".into(),
+                            ));
+                        } else {
+                            break;
+                        }
+                    },
+                }
+            }
+
             (
                 repo.get("tokenizer.json")?,
                 repo.get("model.safetensors")?,
                 repo.get("config.json")?,
                 repo.get("config_sentence_transformers.json")?,
-                repo.get("1_Dense/config.json")?,
-                repo.get("1_Dense/model.safetensors")?,
+                layer_paths,
                 repo.get("special_tokens_map.json")?,
             )
         };
@@ -146,8 +196,6 @@ impl TryFrom<ColbertBuilder> for ColBERT {
                 &weights_path,
                 &config_path,
                 &st_config_path,
-                &dense_config_path,
-                &dense_weights_path,
                 &special_tokens_map_path,
             ] {
                 if !path.exists() {
@@ -163,8 +211,15 @@ impl TryFrom<ColbertBuilder> for ColBERT {
         let weights_bytes = fs::read(weights_path)?;
         let config_bytes = fs::read(config_path)?;
         let st_config_bytes = fs::read(st_config_path)?;
-        let dense_config_bytes = fs::read(dense_config_path)?;
-        let dense_weights_bytes = fs::read(dense_weights_path)?;
+
+        // Read all projection layer files
+        let mut projection_layers_data = Vec::new();
+        for (config_path, weights_path, layer_name) in projection_layer_paths {
+            let config_bytes = fs::read(config_path)?;
+            let weights_bytes = fs::read(weights_path)?;
+            projection_layers_data.push((config_bytes, weights_bytes, layer_name));
+        }
+
         let special_tokens_map_bytes = fs::read(special_tokens_map_path)?;
 
         let st_config: serde_json::Value = serde_json::from_slice(&st_config_bytes)?;
@@ -191,11 +246,9 @@ impl TryFrom<ColbertBuilder> for ColBERT {
                 .to_string()
         });
 
-        let final_do_query_expansion = builder.do_query_expansion.unwrap_or_else(|| {
-            st_config["do_query_expansion"]
-                .as_bool()
-                .unwrap_or(true)
-        });
+        let final_do_query_expansion = builder
+            .do_query_expansion
+            .unwrap_or_else(|| st_config["do_query_expansion"].as_bool().unwrap_or(true));
 
         let final_attend_to_expansion_tokens =
             builder.attend_to_expansion_tokens.unwrap_or_else(|| {
@@ -212,10 +265,9 @@ impl TryFrom<ColbertBuilder> for ColBERT {
 
         ColBERT::new(
             weights_bytes,
-            dense_weights_bytes,
+            projection_layers_data,
             tokenizer_bytes,
             config_bytes,
-            dense_config_bytes,
             final_query_prefix,
             final_document_prefix,
             mask_token,
