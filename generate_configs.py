@@ -30,7 +30,7 @@ CONFIGS = {
 def generate_config(variant_name: str, base_name="pylate-rs"):
     """Generate a pyproject.toml file for a specific build variant."""
     if sys.stdout.encoding != 'utf-8':
-        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stdout.reconfigure(encoding='utf-8')  # type: ignore[union-attr]
 
     config = CONFIGS.get(variant_name)
     if not config:

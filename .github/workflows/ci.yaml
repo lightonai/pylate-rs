@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  pre-commit:
+    name: Pre-commit checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run pre-commit
+        uses: pre-commit/action@v3.0.1
+
+  comparison-tests:
+    name: PyLate vs PyLate-RS comparison tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Cache HuggingFace models
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-models-${{ runner.os }}-${{ hashFiles('tests/conftest.py') }}
+          restore-keys: |
+            hf-models-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: |
+          pip install maturin numpy pytest torch pylate
+
+      - name: Build and install pylate-rs
+        run: |
+          python generate_configs.py default
+          pip install -e .
+
+      - name: Run comparison tests
+        run: |
+          pytest tests/test_comparison.py -v -m slow
