@@ -18,7 +18,7 @@ run-python:
 	pip uninstall -y pylate-rs
 	python generate_configs.py metal
 	pip install .
-	python benchmark/python.py
+	python benchmark/python_benchmark.py
 
 lint:
 	cargo clean
