@@ -1,5 +1,6 @@
 use crate::{error::ColbertError, model::ColBERT};
 use candle_core::Device;
+use candle_onnx;
 use hf_hub::{api::sync::Api, Repo, RepoType};
 use std::{convert::TryFrom, fs, path::PathBuf};
 
@@ -20,6 +21,7 @@ pub struct ColbertBuilder {
     document_length: Option<usize>,
     batch_size: Option<usize>,
     device: Option<Device>,
+    use_onnx: bool,
 }
 
 #[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
@@ -37,6 +39,7 @@ impl ColbertBuilder {
             document_length: None,
             batch_size: None,
             device: None,
+            use_onnx: false,
         }
     }
 
@@ -93,6 +96,12 @@ impl ColbertBuilder {
         self.device = Some(device);
         self
     }
+
+    /// Enables ONNX model loading instead of safetensors.
+    pub fn with_onnx(mut self) -> Self {
+        self.use_onnx = true;
+        self
+    }
 }
 
 #[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
@@ -104,6 +113,99 @@ impl TryFrom<ColbertBuilder> for ColBERT {
         let device = builder.device.unwrap_or(Device::Cpu);
 
         let local_path = PathBuf::from(&builder.repo_id);
+
+        // ONNX loading path: different files needed
+        if builder.use_onnx {
+            let (
+                tokenizer_path,
+                onnx_model_path,
+                st_config_path,
+                special_tokens_map_path,
+            ) = if local_path.is_dir() {
+                (
+                    local_path.join("tokenizer.json"),
+                    local_path.join("model.onnx"),
+                    local_path.join("config_sentence_transformers.json"),
+                    local_path.join("special_tokens_map.json"),
+                )
+            } else {
+                let api = Api::new()?;
+                let repo = api.repo(Repo::with_revision(
+                    builder.repo_id.clone(),
+                    RepoType::Model,
+                    "main".to_string(),
+                ));
+                (
+                    repo.get("tokenizer.json")?,
+                    repo.get("model.onnx")?,
+                    repo.get("config_sentence_transformers.json")?,
+                    repo.get("special_tokens_map.json")?,
+                )
+            };
+
+            // Load the ONNX model
+            let onnx_model = candle_onnx::read_file(onnx_model_path)?;
+
+            // Read config files
+            let tokenizer_bytes = fs::read(tokenizer_path)?;
+            let st_config_bytes = fs::read(st_config_path)?;
+            let special_tokens_map_bytes = fs::read(special_tokens_map_path)?;
+
+            let st_config: serde_json::Value = serde_json::from_slice(&st_config_bytes)?;
+            let special_tokens_map: serde_json::Value =
+                serde_json::from_slice(&special_tokens_map_bytes)?;
+
+            let final_query_prefix = builder.query_prefix.unwrap_or_else(|| {
+                st_config["query_prefix"]
+                    .as_str()
+                    .unwrap_or("[Q]")
+                    .to_string()
+            });
+            let final_document_prefix = builder.document_prefix.unwrap_or_else(|| {
+                st_config["document_prefix"]
+                    .as_str()
+                    .unwrap_or("[D]")
+                    .to_string()
+            });
+            let mask_token = builder.mask_token.unwrap_or_else(|| {
+                special_tokens_map["mask_token"]
+                    .as_str()
+                    .unwrap_or("[MASK]")
+                    .to_string()
+            });
+            let final_do_query_expansion = builder.do_query_expansion.unwrap_or_else(|| {
+                st_config["do_query_expansion"]
+                    .as_bool()
+                    .unwrap_or(true)
+            });
+            let final_attend_to_expansion_tokens =
+                builder.attend_to_expansion_tokens.unwrap_or_else(|| {
+                    st_config["attend_to_expansion_tokens"]
+                        .as_bool()
+                        .unwrap_or(false)
+                });
+            let final_query_length = builder
+                .query_length
+                .or_else(|| st_config["query_length"].as_u64().map(|v| v as usize));
+            let final_document_length = builder
+                .document_length
+                .or_else(|| st_config["document_length"].as_u64().map(|v| v as usize));
+
+            return ColBERT::new_onnx(
+                onnx_model,
+                tokenizer_bytes,
+                final_query_prefix,
+                final_document_prefix,
+                mask_token,
+                final_do_query_expansion,
+                final_attend_to_expansion_tokens,
+                final_query_length,
+                final_document_length,
+                builder.batch_size,
+                &device,
+            );
+        }
+
         let (
             tokenizer_path,
             weights_path,

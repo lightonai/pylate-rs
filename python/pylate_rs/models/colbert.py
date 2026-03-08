@@ -31,6 +31,9 @@ class ColBERT:
             model config.
         mask_token:
             The mask token used for padding queries. Defaults to "[MASK]".
+        use_onnx:
+            Whether to load the model from an ONNX file instead of safetensors.
+            Defaults to False.
 
     """
 
@@ -46,6 +49,7 @@ class ColBERT:
         query_prefix: str | None = None,
         document_prefix: str | None = None,
         mask_token: str = "[MASK]",  # noqa: S107
+        use_onnx: bool = False,
     ) -> None:
         """Initialize and configures the ColBERT model."""
         self.model = PyColBERT.from_pretrained(
@@ -59,6 +63,7 @@ class ColBERT:
             query_prefix=query_prefix,
             document_prefix=document_prefix,
             mask_token=mask_token,
+            use_onnx=use_onnx,
         )
 
     def encode(

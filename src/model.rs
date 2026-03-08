@@ -4,9 +4,10 @@ use crate::{
     types::Similarities,
     utils::normalize_l2,
 };
-use candle_core::{DType, Device, IndexOp, Tensor};
+use candle_core::{Device, IndexOp, Tensor, DType};
 use candle_nn::{Linear, Module, VarBuilder};
 use candle_transformers::models::bert::{BertModel, Config as BertConfig};
+use crate::onnx::OnnxModel;
 use tokenizers::Tokenizer;
 
 #[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
@@ -26,6 +27,8 @@ pub enum BaseModel {
     ModernBert(ModernBert),
     /// A variant holding a standard `BertModel`.
     Bert(BertModel),
+    /// A variant holding an ONNX model.
+    Onnx(OnnxModel),
 }
 
 impl BaseModel {
@@ -41,6 +44,7 @@ impl BaseModel {
             BaseModel::Bert(model) => {
                 model.forward(input_ids, token_type_ids, Some(attention_mask))
             },
+            BaseModel::Onnx(model) => model.forward(input_ids, attention_mask),
         }
     }
 }
@@ -53,7 +57,7 @@ impl BaseModel {
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
 pub struct ColBERT {
     pub(crate) model: BaseModel,
-    pub(crate) linear: Linear,
+    pub(crate) linear: Option<Linear>,
     pub(crate) tokenizer: Tokenizer,
     pub(crate) mask_token_id: u32,
     pub(crate) mask_token: String,
@@ -152,10 +156,58 @@ impl ColBERT {
 
         Ok(Self {
             model,
-            linear,
+            linear: Some(linear),
             tokenizer,
             mask_token_id,
             mask_token: mask_token,
+            query_prefix,
+            document_prefix,
+            do_query_expansion,
+            attend_to_expansion_tokens: final_attend_to_expansion_tokens,
+            query_length: query_length.unwrap_or(32),
+            document_length: document_length.unwrap_or(180),
+            batch_size: batch_size.unwrap_or(32),
+            device: device.clone(),
+        })
+    }
+
+    /// Creates a new instance of the `ColBERT` model from an ONNX model.
+    #[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
+    pub fn new_onnx(
+        onnx_model: candle_onnx::onnx::ModelProto,
+        tokenizer_bytes: Vec<u8>,
+        query_prefix: String,
+        document_prefix: String,
+        mask_token: String,
+        do_query_expansion: bool,
+        attend_to_expansion_tokens: bool,
+        query_length: Option<usize>,
+        document_length: Option<usize>,
+        batch_size: Option<usize>,
+        device: &Device,
+    ) -> Result<Self, ColbertError> {
+        let model = BaseModel::Onnx(OnnxModel::new(onnx_model)?);
+        let tokenizer = Tokenizer::from_bytes(&tokenizer_bytes)?;
+
+        let mask_token_id = tokenizer.token_to_id(mask_token.as_str()).ok_or_else(|| {
+            ColbertError::Operation(format!(
+                "Token '{}' not found in the tokenizer's vocabulary.",
+                mask_token
+            ))
+        })?;
+
+        let final_attend_to_expansion_tokens = if !do_query_expansion {
+            false
+        } else {
+            attend_to_expansion_tokens
+        };
+
+        Ok(Self {
+            model,
+            linear: None,
+            tokenizer,
+            mask_token_id,
+            mask_token,
             query_prefix,
             document_prefix,
             do_query_expansion,
@@ -268,7 +320,10 @@ impl ColBERT {
                         let token_embeddings =
                             self.model
                                 .forward(&token_ids, &attention_mask, &token_type_ids)?;
-                        let projected_embeddings = self.linear.forward(&token_embeddings)?;
+                        let projected_embeddings = match &self.linear {
+                            Some(linear) => linear.forward(&token_embeddings)?,
+                            None => token_embeddings,
+                        };
 
                         if !self.do_query_expansion || !is_query {
                             // Apply filtering, normalization, and padding.
@@ -298,7 +353,10 @@ impl ColBERT {
                 self.model
                     .forward(&token_ids, &attention_mask, &token_type_ids)?;
 
-            let projected_embeddings = self.linear.forward(&token_embeddings)?;
+            let projected_embeddings = match &self.linear {
+                Some(linear) => linear.forward(&token_embeddings)?,
+                None => token_embeddings,
+            };
 
             let final_embeddings = if !self.do_query_expansion || !is_query {
                 // Apply filtering, normalization, and padding.
