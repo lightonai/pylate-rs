@@ -58,7 +58,8 @@ impl PyColBERT {
         attend_to_expansion_tokens=None,
         query_prefix=None,
         document_prefix=None,
-        mask_token=None
+        mask_token=None,
+        use_onnx=false
     ))]
     pub fn from_pretrained(
         repo_id: &str,
@@ -71,6 +72,7 @@ impl PyColBERT {
         query_prefix: Option<String>,
         document_prefix: Option<String>,
         mask_token: Option<String>,
+        use_onnx: bool,
     ) -> PyResult<Self> {
         let device = match device {
             Some(device_str) if device_str.starts_with("cuda") => {
@@ -91,6 +93,10 @@ impl PyColBERT {
         };
 
         let mut builder = ColBERT::from(repo_id).with_device(device);
+
+        if use_onnx {
+            builder = builder.with_onnx();
+        }
 
         if let Some(ql) = query_length {
             builder = builder.with_query_length(ql);

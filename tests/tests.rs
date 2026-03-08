@@ -53,6 +53,108 @@ fn gte_modern_colbert_test() -> Result<()> {
     Ok(())
 }
 
+/// Tests the `LateOn-Code-edge` model loaded via ONNX.
+#[test]
+fn lateon_code_edge_onnx_test() -> Result<()> {
+    let device = Device::Cpu;
+    println!("Testing ONNX loading with lightonai/LateOn-Code-edge...");
+
+    let mut model: ColBERT = ColBERT::from("lightonai/LateOn-Code-edge")
+        .with_onnx()
+        .with_device(device)
+        .try_into()?;
+
+    let query_sentences = vec!["what is the capital of france".to_string()];
+    let document_sentences = vec!["paris is the capital of france".to_string()];
+
+    let query_embeddings = model.encode(&query_sentences, true)?;
+    let document_embeddings = model.encode(&document_sentences, false)?;
+
+    println!("Query embeddings shape: {:?}", query_embeddings.dims());
+    println!("Document embeddings shape: {:?}", document_embeddings.dims());
+
+    let similarities = model.similarity(&query_embeddings, &document_embeddings)?;
+    let score = similarities.data[0][0];
+
+    println!("LateOn-Code-edge ONNX Similarity: {}", score);
+    assert!(score > 0.0, "Score should be positive, got {}", score);
+
+    Ok(())
+}
+
+/// Tests the `LateOn-Code` model loaded via ONNX.
+#[test]
+fn lateon_code_onnx_test() -> Result<()> {
+    let device = Device::Cpu;
+    println!("Testing ONNX loading with lightonai/LateOn-Code...");
+
+    let mut model: ColBERT = ColBERT::from("lightonai/LateOn-Code")
+        .with_onnx()
+        .with_device(device)
+        .try_into()?;
+
+    let query_sentences = vec!["what is the capital of france".to_string()];
+    let document_sentences = vec!["paris is the capital of france".to_string()];
+
+    let query_embeddings = model.encode(&query_sentences, true)?;
+    let document_embeddings = model.encode(&document_sentences, false)?;
+
+    println!("Query embeddings shape: {:?}", query_embeddings.dims());
+    println!("Document embeddings shape: {:?}", document_embeddings.dims());
+
+    let similarities = model.similarity(&query_embeddings, &document_embeddings)?;
+    let score = similarities.data[0][0];
+
+    println!("LateOn-Code ONNX Similarity: {}", score);
+    assert!(score > 0.0, "Score should be positive, got {}", score);
+
+    Ok(())
+}
+
+/// Tests that ONNX and safetensors produce equivalent outputs for the same model.
+#[test]
+fn onnx_vs_safetensors_equivalence() -> Result<()> {
+    let device = Device::Cpu;
+    let model_id = "lightonai/LateOn-Code";
+    println!("Testing ONNX vs safetensors equivalence with {}...", model_id);
+
+    let mut model_st: ColBERT = ColBERT::from(model_id)
+        .with_device(device.clone())
+        .try_into()?;
+
+    let mut model_onnx: ColBERT = ColBERT::from(model_id)
+        .with_onnx()
+        .with_device(device)
+        .try_into()?;
+
+    let queries = vec!["what is the capital of france".to_string()];
+    let documents = vec!["paris is the capital of france".to_string()];
+
+    let q_st = model_st.encode(&queries, true)?;
+    let d_st = model_st.encode(&documents, false)?;
+    let score_st = model_st.similarity(&q_st, &d_st)?;
+
+    let q_onnx = model_onnx.encode(&queries, true)?;
+    let d_onnx = model_onnx.encode(&documents, false)?;
+    let score_onnx = model_onnx.similarity(&q_onnx, &d_onnx)?;
+
+    let diff = (score_st.data[0][0] - score_onnx.data[0][0]).abs();
+    println!(
+        "safetensors: {:.6}  onnx: {:.6}  diff: {:.6e}",
+        score_st.data[0][0], score_onnx.data[0][0], diff
+    );
+
+    assert!(
+        diff < 1e-2,
+        "ONNX and safetensors scores differ too much: safetensors={}, onnx={}, diff={}",
+        score_st.data[0][0],
+        score_onnx.data[0][0],
+        diff
+    );
+
+    Ok(())
+}
+
 /// Tests the `colbertv2.0` model from the Hugging Face Hub.
 #[test]
 fn colbert_v2_test() -> Result<()> {
